@@ -5,6 +5,8 @@
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
     <title>Gameunity — Sign In</title>
+    <script>(function(){try{document.documentElement.setAttribute('data-theme',localStorage.getItem('theme')||'shadow')}catch(e){}})()</script>
+    <link rel="icon" href="../favicon.png" type="image/png">
     <meta name="description"
         content="Sign in to Gameunity — Where great communities come alive. Join 148K+ members worldwide." />
     <link
@@ -19,9 +21,37 @@
     <canvas id="bgCanvas"></canvas>
 
     <!-- Back to Home -->
-    <a href="landing.html" style="position: absolute; top: 32px; left: 40px; color: var(--text-muted); text-decoration: none; font-size: 14px; font-weight: 600; font-family: 'Syne', sans-serif; display: flex; align-items: center; gap: 8px; transition: color 0.2s ease; z-index: 50;" onmouseover="this.style.color='white'" onmouseout="this.style.color='var(--text-muted)'" title="Return to Landing Page">
+    <a href="landing.html" style="position: absolute; top: 32px; left: 40px; color: var(--text-muted); text-decoration: none; font-size: 14px; font-weight: 600; font-family: 'Syne', sans-serif; display: flex; align-items: center; gap: 8px; transition: color 0.2s ease; z-index: 50;" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-muted)'" title="Return to Landing Page">
         <span style="font-size: 18px;">←</span> Back to Home
     </a>
+
+    <!-- Compact Theme Control -->
+    <div style="position: absolute; top: 28px; right: 40px; z-index: 50;">
+      <div class="theme-dropdown-wrap">
+        <button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-expanded="false" aria-label="Appearance menu">
+          <span class="theme-icon">◐</span>
+          <span class="theme-lbl">Theme</span>
+        </button>
+        <div class="theme-dropdown-menu" id="themeDropdownMenu" role="menu">
+          <div class="theme-menu-header">Appearance</div>
+          <button type="button" class="theme-menu-item" data-theme-val="shadow" role="menuitem">
+            <span class="theme-radio">○</span>
+            <span class="theme-item-label">Shadow</span>
+            <span class="theme-badge">Dark</span>
+          </button>
+          <button type="button" class="theme-menu-item" data-theme-val="paper" role="menuitem">
+            <span class="theme-radio">○</span>
+            <span class="theme-item-label">Paper</span>
+            <span class="theme-badge">Light</span>
+          </button>
+          <button type="button" class="theme-menu-item" data-theme-val="hacker" role="menuitem">
+            <span class="theme-radio">○</span>
+            <span class="theme-item-label">Hacker</span>
+            <span class="theme-badge">Terminal</span>
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- Ambient Glow -->
     <div class="ambient-glow"></div>
@@ -31,12 +61,12 @@
         <div class="login-card" id="loginCard">
             <!-- Logo -->
             <div class="login-logo">
-                <div class="logo-hex">N</div>
+                <div class="logo-hex">🎮</div>
                 <span class="logo-text">Gameunity</span>
             </div>
 
             <!-- Dynamic Subtitle -->
-            <p class="login-subtitle" id="loginSubtitle">Welcome back! Sign in to your account.</p>
+            <p class="login-subtitle" id="loginSubtitle">Sign in to continue your Gameunity experience.</p>
 
             <!-- Tab Switcher -->
             <div class="auth-tabs" id="authTabs">
@@ -74,12 +104,12 @@
                         password?</a>
                 </div>
 
-                <!-- Role Selector (for demo/prototype) -->
+                <!-- Role Selector -->
                 <div class="form-group">
                     <label class="form-label" for="login-role">Sign in as</label>
                     <select class="form-input form-select" id="login-role" required>
                         <option value="">Select your role</option>
-                        <option value="admin">🛡️ System Admin</option>
+                        <option value="admin">👑 Platform Owner / System Admin</option>
                         <option value="community_manager">📅 Community Manager</option>
                         <option value="moderator">🔍 Moderator</option>
                         <option value="user">🎮 User</option>
@@ -94,8 +124,9 @@
 
                 <!-- Quick Demo Access -->
                 <div class="demo-personas">
-                    <span class="demo-label">Quick access:</span>
-                    <button type="button" class="demo-pill" onclick="quickLogin('rajat', 'admin')">🛡️ RAJAT JAIN (ADMIN)</button>
+                    <span class="demo-label">Quick personas:</span>
+                    <button type="button" class="demo-pill demo-pill--owner" onclick="quickLogin('sanidhya', 'admin')">👑 SANIDHYA (OWNER)</button>
+                    <button type="button" class="demo-pill" onclick="quickLogin('rajat', 'admin')">🛡️ RAJAT (ADMIN)</button>
                     <button type="button" class="demo-pill" onclick="quickLogin('karmanya', 'moderator')">🔍 KARMANYA (MOD)</button>
                     <button type="button" class="demo-pill" onclick="quickLogin('anant', 'community_manager')">📅 ANANT (CM)</button>
                     <button type="button" class="demo-pill" onclick="quickLogin('awadhesh', 'user')">🎮 AWADHESH (USER)</button>

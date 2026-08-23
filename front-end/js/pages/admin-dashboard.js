@@ -32,7 +32,13 @@ let _platformConfig = {};
 })();
 
 // ── Load all data ─────────────────────────────────────────────────────────────
+let _isAdminDashLoading = false;
+let _adminDashLoaded = false;
+
 async function loadAll() {
+    console.trace('[TRACE] loadAll() caller');
+    if (_adminDashLoaded || _isAdminDashLoading) return;
+    _isAdminDashLoading = true;
     try {
         [_users, _communities, _events, _reports, _auditLog, _platformConfig] = await Promise.all([
             window.API.users.getAll(),
@@ -42,9 +48,13 @@ async function loadAll() {
             window.API.auditLog.getAll(),
             window.API.platformConfig.get(),
         ]);
+        _adminDashLoaded = true;
     } catch (err) {
         console.error('[AdminDash] Failed to load data:', err);
+        _adminDashLoaded = true;
         toast('⚠️ Backend unreachable. Is NestJS running?');
+    } finally {
+        _isAdminDashLoading = false;
     }
 }
 

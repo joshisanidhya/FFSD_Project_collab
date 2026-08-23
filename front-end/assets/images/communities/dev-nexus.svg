@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 200" width="100%" height="100%">
+  <defs>
+    <linearGradient id="dnBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#111827"/>
+      <stop offset="100%" stop-color="#1F2937"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="200" fill="url(#dnBg)"/>
+  <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+  <circle cx="500" cy="100" r="120" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+  <text x="30" y="115" fill="#F4F4F5" font-family="'Syne', sans-serif" font-weight="800" font-size="28" letter-spacing="1">DEV NEXUS</text>
+  <text x="30" y="145" fill="#9CA3AF" font-family="'DM Sans', sans-serif" font-weight="500" font-size="14">Official Developer & Creator Hub</text>
+</svg>

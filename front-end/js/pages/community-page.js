@@ -270,8 +270,19 @@ window.goBackFromCommunity = function () {
 };
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', async () => {
+let _isCommunityPageInit = false;
+
+async function initCommunityPage() {
+    if (_isCommunityPageInit) return;
+    _isCommunityPageInit = true;
+
     await loadCommunityData();
     renderCommunityData();
     console.log('%c[CommunityPage] %cLive backend data loaded.', 'color: #5B6EF5; font-weight: bold;', 'color: #10B981;');
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initCommunityPage);
+} else {
+    initCommunityPage();
+}

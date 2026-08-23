@@ -135,11 +135,12 @@ window.validateInput = function(el) {
     markAsDirty();
 };
 
-window.saveAllChanges = function () {
+window.saveAllChanges = async function () {
     const saveBtn = document.getElementById('btnSaveAll');
     if (!saveBtn) return;
 
-    const reqFields = ['inpFirstName', 'inpLastName', 'inpHandle', 'inpFullName', 'inpEmail', 'inpPhone'];
+    // Only validate required public profile fields that exist on current view
+    const reqFields = ['inpFirstName', 'inpLastName', 'inpFullName'];
     let hasError = false;
 
     // Check required fields
@@ -154,7 +155,7 @@ window.saveAllChanges = function () {
         }
     });
 
-    // Check email contains '@'
+    // Check email contains '@' if provided
     const emailEl = document.getElementById('inpEmail');
     if (emailEl && emailEl.value.trim() !== "" && !emailEl.value.includes('@')) {
         hasError = true;
@@ -162,7 +163,7 @@ window.saveAllChanges = function () {
         if (errEl) { errEl.textContent = "Valid email is required (must contain '@')."; errEl.style.display = 'block'; }
     }
 
-    // Check phone has no letters
+    // Check phone has no letters if provided
     const phoneEl = document.getElementById('inpPhone');
     if (phoneEl && phoneEl.value.trim() !== "" && /[a-zA-Z]/.test(phoneEl.value)) {
         hasError = true;
@@ -171,42 +172,58 @@ window.saveAllChanges = function () {
     }
 
     if (hasError) {
-        window.toast("❌ Please fix errors before saving.");
+        if (typeof window.toast === "function") window.toast("❌ Please fix errors before saving.");
         return;
     }
 
     saveBtn.textContent = "Saving...";
+    saveBtn.disabled = true;
     
-    const sessionUser = window.getCurrentUser();
+    const sessionUser = window.getCurrentUser() || {};
     const updatedUser = {
         ...sessionUser,
-        firstName: document.getElementById('inpFirstName').value.trim(),
-        lastName: document.getElementById('inpLastName').value.trim(),
-        fullName: document.getElementById('inpFullName').value.trim(),
-        handle: document.getElementById('inpHandle').value.trim(),
-        email: document.getElementById('inpEmail').value.trim(),
-        phone: document.getElementById('inpPhone').value.trim(),
+        firstName: (document.getElementById('inpFirstName')?.value || sessionUser.firstName || '').trim(),
+        lastName: (document.getElementById('inpLastName')?.value || sessionUser.lastName || '').trim(),
+        fullName: (document.getElementById('inpFullName')?.value || sessionUser.fullName || '').trim(),
+        handle: (document.getElementById('inpHandle')?.value || sessionUser.handle || '').trim(),
+        email: (document.getElementById('inpEmail')?.value || sessionUser.email || '').trim(),
+        phone: (document.getElementById('inpPhone')?.value || sessionUser.phone || '').trim(),
+        bio: (document.getElementById('inpBio')?.value || sessionUser.bio || '').trim(),
         avatar: window.tempAvatarData !== undefined ? window.tempAvatarData : sessionUser.avatar
     };
+
     if (window.tempAvatarData === null) {
         delete updatedUser.avatar;
     }
 
-    if (typeof persistCurrentUser === "function") persistCurrentUser(updatedUser);
-    else {
+    try {
+        if (window.API && window.API.users && sessionUser.id) {
+            await window.API.users.update(sessionUser.id, {
+                name: updatedUser.fullName,
+                email: updatedUser.email
+            });
+        }
+    } catch (err) {
+        console.warn("[Profile] Backend update warning (using local persistence):", err);
+    }
+
+    if (typeof persistCurrentUser === "function") {
+        persistCurrentUser(updatedUser);
+    } else {
         localStorage.setItem('nexus_user', JSON.stringify(updatedUser));
         localStorage.setItem('currentUser', JSON.stringify(updatedUser));
     }
 
-    setTimeout(() => {
-        saveBtn.textContent = "Save Changes";
-        saveBtn.disabled = true;
-        saveBtn.classList.remove('pulse');
-        hasUnsavedChanges = false;
-        window.toast("✅ Profile settings updated.");
-        loadProfileData();
-        if (window.SidebarComponent) window.SidebarComponent.init();
-    }, 800);
+    saveBtn.textContent = "Save Changes";
+    saveBtn.disabled = true;
+    saveBtn.classList.remove('pulse');
+    hasUnsavedChanges = false;
+
+    if (typeof window.toast === "function") window.toast("✅ Profile settings updated successfully.");
+    loadProfileData();
+    if (window.SidebarComponent && typeof window.SidebarComponent.init === "function") {
+        window.SidebarComponent.init();
+    }
 };
 
 // --- 5. MODALS & STATUS ---
@@ -278,12 +295,6 @@ window.setStatus = function(el) {
     document.querySelectorAll('.status-badge').forEach(b => b.classList.remove('on'));
     el.classList.add('on');
     window.toast(`Status set to: ${el.textContent.trim()}`);
-};
-
-window.setTheme = function(el) {
-    document.querySelectorAll('.theme-opt').forEach(t => t.classList.remove('on'));
-    el.classList.add('on');
-    window.toast("🎨 Theme updated.");
 };
 
 window.updatePrivacySettings = function() {

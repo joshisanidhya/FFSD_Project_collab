@@ -60,12 +60,18 @@ function isSystemAdmin() {
 }
 
 // ── Load ─────────────────────────────────────────────────────────────────────
+let _isEventsLoading = false;
+let _eventsLoaded = false;
+
 async function loadData() {
+    if (_eventsLoaded || _isEventsLoading) return;
+    _isEventsLoading = true;
     try {
         [_events, _communities] = await Promise.all([
             window.API.events.getAll(),
             window.API.communities.getAll()
         ]);
+        _eventsLoaded = true;
         writeStoredEvents(_events);
         const userId = await resolveCurrentUserId();
         _eventRegistrations = await window.API.eventRegistrations.getAll({ userId });
@@ -75,6 +81,8 @@ async function loadData() {
         _events = readStoredEvents();
         _communities = [];
         _eventRegistrations = [];
+    } finally {
+        _isEventsLoading = false;
     }
 
     if (!_communities.length) {

@@ -19,10 +19,11 @@ const ROLE_REDIRECTS = {
 
 // Default users for the first-time load
 const DEFAULT_USERS = [
-    { email: 'rajat@gameunity.com', username: 'rajat', firstName: 'Rajat', lastName: 'Jain', password: 'Rajat@123', role: 'admin', avatar: null },
-    { email: 'karmanya@gameunity.com', username: 'karmanya', firstName: 'Karmanya', lastName: 'Bansal', password: 'Karmanya@123', role: 'moderator', avatar: null },
-    { email: 'anant@gameunity.com', username: 'anant', firstName: 'Anant', lastName: 'Gupta', password: 'Demo@123', role: 'community_manager', avatar: null },
-    { email: 'awadhesh@gameunity.com', username: 'awadhesh', firstName: 'Awadhesh', lastName: 'Kumar', password: 'Demo@123', role: 'user', avatar: null }
+    { id: 1, email: 'sanidhya@gameunity.com', username: 'sanidhya', firstName: 'Sanidhya', lastName: 'Joshi', name: 'Sanidhya Joshi', password: 'Sanidhya@123', role: 'admin', roleLabel: 'Platform Owner', isPlatformOwner: true, avatar: null },
+    { id: 2, email: 'rajat@gameunity.com', username: 'rajat', firstName: 'Rajat', lastName: 'Jain', name: 'Rajat Jain', password: 'Rajat@123', role: 'admin', roleLabel: 'System Admin', avatar: null },
+    { id: 3, email: 'karmanya@gameunity.com', username: 'karmanya', firstName: 'Karmanya', lastName: 'Bansal', name: 'Karmanya Bansal', password: 'Karmanya@123', role: 'moderator', roleLabel: 'Moderator', avatar: null },
+    { id: 4, email: 'anant@gameunity.com', username: 'anant', firstName: 'Anant', lastName: 'Gupta', name: 'Anant Gupta', password: 'Demo@123', role: 'community_manager', roleLabel: 'Community Manager', avatar: null },
+    { id: 5, email: 'awadhesh@gameunity.com', username: 'awadhesh', firstName: 'Awadhesh', lastName: 'Kumar', name: 'Awadhesh Kumar', password: 'Demo@123', role: 'user', roleLabel: 'User', avatar: null }
 ];
 
 /** * Persistent Mock Database Helpers 
@@ -37,7 +38,6 @@ function getAllUsers() {
         if (index === -1) {
             users.push(defUser);
         } else {
-            // Update existing record to match the default (in case of stale data)
             users[index] = { ...users[index], ...defUser };
         }
     });
@@ -164,24 +164,30 @@ window.handleLogin = function(e) {
             return;
         }
 
-        localStorage.setItem('nexus_user', JSON.stringify({
-            firstName: matchedUser.firstName || (matchedUser.fullname || matchedUser.username).split(' ')[0] || matchedUser.username,
-            lastName: matchedUser.lastName || (matchedUser.fullname || '').split(' ').slice(1).join(' '),
-            name: matchedUser.fullname || `${matchedUser.firstName || ''} ${matchedUser.lastName || ''}`.trim() || matchedUser.username,
+        const isOwner = matchedUser.username === 'sanidhya' || matchedUser.isPlatformOwner;
+        const userPayload = {
+            id: matchedUser.id || (isOwner ? 1 : matchedUser.role === 'admin' ? 2 : matchedUser.role === 'moderator' ? 3 : 4),
+            firstName: matchedUser.firstName || (matchedUser.name || matchedUser.fullname || matchedUser.username).split(' ')[0] || matchedUser.username,
+            lastName: matchedUser.lastName || (matchedUser.name || matchedUser.fullname || '').split(' ').slice(1).join(' '),
+            name: matchedUser.name || matchedUser.fullname || `${matchedUser.firstName || ''} ${matchedUser.lastName || ''}`.trim() || matchedUser.username,
             username: matchedUser.username,
             role: matchedUser.role,
+            roleLabel: isOwner ? 'Platform Owner' : (matchedUser.roleLabel || 'User'),
+            isPlatformOwner: isOwner,
             avatar: matchedUser.avatar || null,
             loginTime: new Date().toISOString()
-        }));
+        };
+        localStorage.setItem('nexus_user', JSON.stringify(userPayload));
         if (typeof persistCurrentUser === 'function') {
-            persistCurrentUser(JSON.parse(localStorage.getItem('nexus_user')));
+            persistCurrentUser(userPayload);
         } else {
-            localStorage.setItem('currentUser', localStorage.getItem('nexus_user'));
+            localStorage.setItem('currentUser', JSON.stringify(userPayload));
             localStorage.setItem('role', matchedUser.role);
         }
 
         showToast('✅', 'Login successful!');
-        setTimeout(() => { window.location.href = ROLE_REDIRECTS[role] || 'dashboard.html'; }, 800);
+        const targetUrl = isOwner ? 'dashboard.html' : (ROLE_REDIRECTS[role] || 'dashboard.html');
+        setTimeout(() => { window.location.href = targetUrl; }, 800);
     }, 1200);
 };
 

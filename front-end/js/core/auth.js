@@ -1,7 +1,126 @@
 /**
- * Se7enSquare - Authentication & RBAC Logic
- * Centralizes session persistence, role normalization, and client-side access checks.
+ * Se7enSquare - Authentication, Theme System & RBAC Logic
+ * Centralizes session persistence, role normalization, client-side access checks, and theme switching.
  */
+
+// ── Theme Manager ─────────────────────────────────────────────────────────────
+(function initThemeEarly() {
+    try {
+        const savedTheme = localStorage.getItem('theme') || 'shadow';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    } catch (e) {}
+})();
+
+window.setTheme = function(themeArg) {
+    let mode = '';
+    if (typeof themeArg === 'string') {
+        mode = themeArg;
+    } else if (themeArg && themeArg.target) {
+        const targetEl = themeArg.target.closest ? themeArg.target.closest('[data-theme-val], [data-theme]') : null;
+        if (targetEl) mode = targetEl.getAttribute('data-theme-val') || targetEl.getAttribute('data-theme') || '';
+    } else if (themeArg && typeof themeArg.getAttribute === 'function') {
+        mode = themeArg.getAttribute('data-theme-val') || themeArg.getAttribute('data-theme') || '';
+    }
+
+    mode = String(mode || '').toLowerCase().trim();
+    const validThemes = ['shadow', 'paper', 'hacker'];
+    if (!validThemes.includes(mode)) mode = 'shadow';
+
+    document.documentElement.classList.add('theme-transitioning');
+    document.documentElement.setAttribute('data-theme', mode);
+    localStorage.setItem('theme', mode);
+
+    document.querySelectorAll('.theme-card-option, .theme-opt-card, .theme-opt, [data-theme-val], [data-theme]').forEach(card => {
+        const val = card.getAttribute('data-theme-val') || card.getAttribute('data-theme');
+        if (!val || !validThemes.includes(val)) return;
+        const isActive = val === mode;
+        card.classList.toggle('active', isActive);
+        card.classList.toggle('on', isActive);
+
+        const radioEl = card.querySelector('.theme-radio');
+        if (radioEl) {
+            radioEl.textContent = isActive ? '◉' : '○';
+        }
+    });
+
+    setTimeout(() => {
+        document.documentElement.classList.remove('theme-transitioning');
+    }, 220);
+
+    if (typeof window.toast === 'function') {
+        const labels = {
+            shadow: 'Shadow Mode (Obsidian / Dark)',
+            paper: 'Paper Mode (Editorial Light)',
+            hacker: 'Hacker Mode (Terminal Green)'
+        };
+        window.toast(`🎨 Theme updated: ${labels[mode] || mode}`);
+    }
+};
+
+window.getTheme = function() {
+    return localStorage.getItem('theme') || 'shadow';
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    const current = window.getTheme();
+    document.documentElement.setAttribute('data-theme', current);
+    document.querySelectorAll('.theme-card-option, .theme-opt-card, .theme-opt, [data-theme-val], [data-theme]').forEach(card => {
+        const val = card.getAttribute('data-theme-val') || card.getAttribute('data-theme');
+        if (!val) return;
+        const isActive = val === current;
+        card.classList.toggle('active', isActive);
+        card.classList.toggle('on', isActive);
+
+        const radioEl = card.querySelector('.theme-radio');
+        if (radioEl) {
+            radioEl.textContent = isActive ? '◉' : '○';
+        }
+    });
+
+    // ── Global Theme Dropdown Listener ──
+    document.addEventListener('click', (e) => {
+        const toggleBtn = e.target.closest('#themeToggleBtn, .theme-toggle-btn');
+        if (toggleBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            const wrap = toggleBtn.closest('.theme-dropdown-wrap');
+            const menu = wrap ? wrap.querySelector('.theme-dropdown-menu') : document.getElementById('themeDropdownMenu');
+            if (menu) {
+                const isOpen = menu.classList.contains('show');
+                document.querySelectorAll('.theme-dropdown-menu').forEach(m => m.classList.remove('show'));
+                document.querySelectorAll('.theme-toggle-btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
+                if (!isOpen) {
+                    menu.classList.add('show');
+                    toggleBtn.setAttribute('aria-expanded', 'true');
+                }
+            }
+            return;
+        }
+
+        const menuItem = e.target.closest('.theme-menu-item, [data-theme-val]');
+        if (menuItem) {
+            const val = menuItem.getAttribute('data-theme-val') || menuItem.getAttribute('data-theme');
+            if (val) {
+                window.setTheme(val);
+                document.querySelectorAll('.theme-dropdown-menu').forEach(m => m.classList.remove('show'));
+                document.querySelectorAll('.theme-toggle-btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
+            }
+            return;
+        }
+
+        if (!e.target.closest('.theme-dropdown-wrap')) {
+            document.querySelectorAll('.theme-dropdown-menu').forEach(m => m.classList.remove('show'));
+            document.querySelectorAll('.theme-toggle-btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.theme-dropdown-menu').forEach(m => m.classList.remove('show'));
+            document.querySelectorAll('.theme-toggle-btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
+        }
+    });
+});
 
 const ROLES = {
     USER: "user",
@@ -43,6 +162,9 @@ const PAGE_ACCESS = {
 function normalizeRole(role) {
     if (!role) return ROLES.USER;
     const value = String(role).trim().toLowerCase();
+    if (value === 'platform_owner' || value === 'platform-owner' || value === 'owner') {
+        return ROLES.ADMIN;
+    }
     if (value === 'gamer' || value === 'audience') return ROLES.USER;
     if (value === 'community-manager' || value === 'community manager' || value === 'manager' || value === 'cm') {
         return ROLES.COMMUNITY_MANAGER;
@@ -63,12 +185,15 @@ function normalizeUser(rawUser) {
     if (!rawUser) return null;
     const names = splitNameParts(rawUser);
     const username = rawUser.username || rawUser.handle || [names.firstName, names.lastName].filter(Boolean).join("").toLowerCase() || "user";
+    const isOwner = username.toLowerCase() === 'sanidhya' || rawUser.isPlatformOwner || rawUser.roleLabel === 'Platform Owner';
     return {
         ...rawUser,
-        firstName: names.firstName,
-        lastName: names.lastName,
-        username,
+        firstName: isOwner ? (rawUser.firstName || 'Sanidhya') : names.firstName,
+        lastName: isOwner ? (rawUser.lastName || 'Joshi') : names.lastName,
+        username: isOwner ? 'sanidhya' : username,
         role: normalizeRole(rawUser.role),
+        roleLabel: isOwner ? 'Platform Owner' : (rawUser.roleLabel || 'User'),
+        isPlatformOwner: isOwner,
         avatar: rawUser.avatar ?? rawUser.avatarUrl ?? null,
     };
 }
@@ -99,7 +224,7 @@ function getUserFullName(user) {
 }
 
 function renderAvatarElement(el, user) {
-    const avatar = user?.avatar ?? user?.avatarUrl;
+    let avatar = user?.avatar ?? user?.avatarUrl;
     const preservedChildren = Array.from(el.children).filter(child =>
         child.classList.contains("m-stat") ||
         child.classList.contains("m-status") ||
@@ -108,6 +233,9 @@ function renderAvatarElement(el, user) {
     el.innerHTML = "";
     el.style.backgroundImage = "none";
     if (avatar) {
+        if (avatar.startsWith('/uploads/')) {
+            avatar = `http://localhost:3000${avatar}`;
+        }
         const img = document.createElement("img");
         img.src = avatar;
         img.alt = getUserFullName(user) || "User avatar";
@@ -115,11 +243,32 @@ function renderAvatarElement(el, user) {
         img.style.height = "100%";
         img.style.objectFit = "cover";
         img.style.borderRadius = "inherit";
+        img.onerror = function() {
+            el.innerHTML = "";
+            el.textContent = getUserInitials(user);
+            preservedChildren.forEach(child => el.appendChild(child));
+        };
         el.appendChild(img);
     } else {
         el.textContent = getUserInitials(user);
     }
     preservedChildren.forEach(child => el.appendChild(child));
+}
+
+function getUserRoleLabel(user) {
+    if (!user) return "User";
+    const username = String(user.username || user.handle || "").toLowerCase();
+    if (username === "sanidhya" || user.roleLabel === "Platform Owner" || user.isPlatformOwner) {
+        return "Platform Owner";
+    }
+    const role = normalizeRole(user.role);
+    const labels = {
+        admin: "System Admin",
+        community_manager: "Community Manager",
+        moderator: "Moderator",
+        user: "User"
+    };
+    return labels[role] || "User";
 }
 
 function renderUserUI() {
@@ -131,7 +280,7 @@ function renderUserUI() {
         el.textContent = getUserFullName(user);
     });
     document.querySelectorAll(".user-role").forEach(el => {
-        el.textContent = user.role;
+        el.textContent = getUserRoleLabel(user);
     });
 }
 
@@ -148,15 +297,15 @@ function loginUser(username, role) {
 }
 
 function getCurrentUser() {
+    if (window.currentUser) return window.currentUser;
     const session = localStorage.getItem('currentUser') || localStorage.getItem('nexus_user');
     if (!session) return null;
 
     try {
-        return persistCurrentUser(JSON.parse(session));
+        const parsed = JSON.parse(session);
+        window.currentUser = normalizeUser(parsed);
+        return window.currentUser;
     } catch (e) {
-        console.error("Malformed session data. Clearing storage.");
-        localStorage.removeItem('nexus_user');
-        localStorage.removeItem('role');
         return null;
     }
 }

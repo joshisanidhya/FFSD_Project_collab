@@ -9,8 +9,12 @@ let searchQuery    = '';
 let currentSort    = 'active';
 let _communities   = []; // in-memory cache from backend
 
-// --- 2. LOAD FROM BACKEND ---
+let _isLoadingCommunities = false;
+
 async function loadCommunities() {
+    if (_communities.length > 0) return _communities;
+    if (_isLoadingCommunities) return _communities;
+    _isLoadingCommunities = true;
     try {
         _communities = await window.API.communities.getAll();
     } catch (err) {
@@ -20,7 +24,10 @@ async function loadCommunities() {
         if (grid) grid.innerHTML = `<div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--text-3)">
             ⚠️ Could not reach backend. Is the NestJS server running on port 3000?
         </div>`;
+    } finally {
+        _isLoadingCommunities = false;
     }
+    return _communities;
 }
 
 // --- 3. DYNAMIC RENDERING ---
@@ -211,7 +218,12 @@ document.addEventListener('click', e => {
 });
 
 // --- 5. STARTUP ---
-document.addEventListener('DOMContentLoaded', async () => {
+let _isDiscoveryInitialized = false;
+
+async function initDiscoveryPage() {
+    if (_isDiscoveryInitialized) return;
+    _isDiscoveryInitialized = true;
+
     await loadCommunities();
     renderCommunities();
 
@@ -223,4 +235,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     console.log('%c[Discovery] %cLive backend data loaded.', 'color: #5B6EF5; font-weight: bold;', 'color: #10B981;');
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initDiscoveryPage);
+} else {
+    initDiscoveryPage();
+}

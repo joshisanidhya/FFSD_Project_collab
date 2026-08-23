@@ -101,15 +101,18 @@ function _renderSection(section) {
 }
 
 function _renderSidebar(user) {
-  user = (typeof getCurrentUser === 'function' ? getCurrentUser() : user) || user;
+  user = (typeof getCurrentUser === 'function' ? getCurrentUser() : user) || user || {};
   const role = _normalizeRole(localStorage.getItem('role') || user?.role || 'user');
+  const isPlatformOwner = user.username === 'sanidhya' || user.roleLabel === 'Platform Owner' || user.isPlatformOwner;
   const displayName = typeof getUserFullName === 'function'
     ? getUserFullName(user)
-    : (user?.fullName || user?.fullname || user?.name || user?.username || 'Guest');
+    : (user?.fullName || user?.fullname || user?.name || user?.username || 'Sanidhya Joshi');
 
-  const initials = typeof getUserInitials === 'function' ? getUserInitials(user) : 'U';
-
+  const initials = typeof getUserInitials === 'function' ? getUserInitials(user) : 'SJ';
+  const roleLabel = isPlatformOwner ? 'Platform Owner' : (typeof getUserRoleLabel === 'function' ? getUserRoleLabel(user) : (ROLE_META[role]?.tier || 'User'));
+  const roleBadge = isPlatformOwner ? 'PLATFORM OWNER' : (ROLE_META[role]?.badge || null);
   const meta = ROLE_META[role] || ROLE_META.user;
+
   const sections = _getSections(role);
   const colClass = _collapsed ? ' collapsed' : '';
 
@@ -131,12 +134,12 @@ function _renderSidebar(user) {
       <div class="sb-nav" role="list">${sections.map(_renderSection).join('')}</div>
 
       <div class="sb-profile" id="sbProfile">
-        <div class="sb-profile__av user-avatar" onclick="location.href='profile-settings.html'" style="box-shadow:0 0 0 2px ${meta.accent}55">${initials}</div>
+        <div class="sb-profile__av user-avatar" onclick="location.href='profile-settings.html'">${initials}</div>
         <div class="sb-profile__info">
           <div class="sb-profile__name user-name">${displayName}</div>
-          <div class="sb-profile__role" style="color:${meta.color}">
-            ${meta.badge ? `<span class="sb-profile__badge" style="background:${meta.color}18;border-color:${meta.color}40;color:${meta.color}">${meta.badge}</span>` : ''}
-            <span class="user-role">${meta.tier}</span>
+          <div class="sb-profile__role">
+            ${roleBadge ? `<span class="sb-profile__badge">${roleBadge}</span>` : ''}
+            <span class="user-role">${roleLabel}</span>
           </div>
         </div>
         <button class="sb-profile__logout" onclick="typeof logoutUser === 'function' ? logoutUser() : (location.href='login.html')" aria-label="Log out">
@@ -156,11 +159,12 @@ function _renderSidebar(user) {
 window.SidebarComponent = {
   init() {
     const el = document.getElementById('sidebar-container');
-    if (!el) return;
+    if (!el || el.dataset.initialized === 'true') return;
+    el.dataset.initialized = 'true';
 
     let user = null;
     try {
-      const raw = localStorage.getItem('nexus_user');
+      const raw = localStorage.getItem('nexus_user') || localStorage.getItem('currentUser');
       user = raw ? JSON.parse(raw) : null;
     } catch (e) { }
 

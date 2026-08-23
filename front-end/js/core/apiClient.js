@@ -30,6 +30,11 @@ async function apiFetch(path, options = {}) {
     try {
         const res = await fetch(url, { ...options, headers });
 
+        if (res.status === 304) {
+            const entity = path.replace(/^\//, '').split('/')[0];
+            return localRead(entity);
+        }
+
         if (!res.ok) {
             let errBody = {};
             try { errBody = await res.json(); } catch (_) {}
@@ -56,10 +61,13 @@ const STORAGE_KEYS = {
     events: 'events',
     reports: 'nexus_reports',
     eventRegistrations: 'nexus_event_registrations',
+    'event-registrations': 'nexus_event_registrations',
     appeals: 'nexus_appeals',
     messages: 'nexus_messages',
     auditLog: 'nexus_audit_log',
-    platformConfig: 'nexus_platform_config'
+    'audit-log': 'nexus_audit_log',
+    platformConfig: 'nexus_platform_config',
+    'platform-config': 'nexus_platform_config'
 };
 
 const DEFAULT_LOCAL_DATA = {
@@ -100,18 +108,28 @@ const DEFAULT_LOCAL_DATA = {
 };
 
 function localRead(entity) {
-    const key = STORAGE_KEYS[entity];
+    const key = STORAGE_KEYS[entity] || entity;
     const stored = localStorage.getItem(key);
-    if (stored) return JSON.parse(stored);
-    if (entity === 'events') {
-        const legacyEvents = localStorage.getItem('nexus_events');
-        if (legacyEvents) {
-            localStorage.setItem(key, legacyEvents);
-            return JSON.parse(legacyEvents);
+    if (stored) {
+        try {
+            return JSON.parse(stored);
+        } catch (_) {
+            localStorage.removeItem(key);
         }
     }
-    const seed = DEFAULT_LOCAL_DATA[entity] || [];
-    localStorage.setItem(key, JSON.stringify(seed));
+    if (entity === 'events' || entity === 'nexus_events') {
+        const legacyEvents = localStorage.getItem('nexus_events');
+        if (legacyEvents) {
+            try {
+                localStorage.setItem(key, legacyEvents);
+                return JSON.parse(legacyEvents);
+            } catch (_) {}
+        }
+    }
+    const seed = DEFAULT_LOCAL_DATA[entity] || DEFAULT_LOCAL_DATA[key] || [];
+    try {
+        localStorage.setItem(key, JSON.stringify(seed));
+    } catch (_) {}
     return JSON.parse(JSON.stringify(seed));
 }
 
@@ -124,13 +142,37 @@ function nextLocalId(records) {
     return records.reduce((max, item) => Math.max(max, Number(item.id) || 0), 0) + 1;
 }
 
-async function withLocalFallback(path, options, fallback) {
-    try {
-        return await apiFetch(path, options);
-    } catch (err) {
-        console.warn(`[API] Falling back to localStorage for ${path}: ${err.message}`);
-        return fallback();
+const _getCache = new Map();
+const CACHE_TTL_MS = 3000;
+
+async function withLocalFallback(path, options = {}, fallback = () => null) {
+    const method = (options.method || 'GET').toUpperCase();
+    const isGet = method === 'GET';
+    const cacheKey = `${path}:${getRole()}`;
+
+    if (isGet && _getCache.has(cacheKey)) {
+        const cached = _getCache.get(cacheKey);
+        if (Date.now() - cached.timestamp < CACHE_TTL_MS) {
+            return cached.promise;
+        }
     }
+
+    const requestPromise = (async () => {
+        try {
+            return await apiFetch(path, options);
+        } catch (err) {
+            console.warn(`[API] Falling back to localStorage for ${path}: ${err.message}`);
+            return fallback();
+        }
+    })();
+
+    if (isGet) {
+        _getCache.set(cacheKey, { timestamp: Date.now(), promise: requestPromise });
+    } else {
+        _getCache.clear();
+    }
+
+    return requestPromise;
 }
 
 function canUpdateEvents() {
@@ -179,23 +221,7 @@ const API = {
         }),
     },
     communities: {
-        getAll:  async () => {
-            let backendData = [];
-            try {
-                backendData = await apiFetch('/communities', { method: 'GET' });
-            } catch (err) {
-                console.warn('[API] /communities fallback', err);
-                return localRead('communities');
-            }
-            // Merge local and backend data to survive in-memory DB resets
-            const localData = localRead('communities');
-            const mergedMap = new Map();
-            localData.forEach(c => mergedMap.set(String(c.id), c));
-            backendData.forEach(c => mergedMap.set(String(c.id), c)); // backend overrides
-            const merged = Array.from(mergedMap.values());
-            localWrite('communities', merged);
-            return merged;
-        },
+        getAll:  () => withLocalFallback('/communities', { method: 'GET' }, () => localRead('communities')),
         getOne:  (id)        => withLocalFallback(`/communities/${id}`, { method: 'GET' }, () => localRead('communities').find(item => String(item.id) === String(id))),
         create:  async (body) => {
             let created;

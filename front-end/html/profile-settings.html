@@ -2,6 +2,8 @@
     <meta charset="utf-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>Gameunity – Profile &amp; Settings</title>
+    <script>(function(){try{document.documentElement.setAttribute('data-theme',localStorage.getItem('theme')||'shadow')}catch(e){}})()</script>
+    <link rel="icon" href="../favicon.png" type="image/png">
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&amp;family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&amp;display=swap" rel="stylesheet">
     <link href="../css/global.css" rel="stylesheet">
     <link href="../css/components/sidebar.css" rel="stylesheet">
@@ -320,16 +322,71 @@
 
           <div class="view" id="view-appearance">
             <div class="settings-card">
-              <div class="card-title">🎨 Theme</div>
-              <div class="card-sub">Choose your Gameunity colour theme.</div>
-              <div class="theme-grid">
-                <div class="theme-opt on" onclick="setTheme(this)">
-                  <div class="theme-swatch" style="background: var(--bg-deep)"></div>
-                  <div class="theme-label">Dark (Default)</div>
+              <div class="card-title">🎨 Appearance &amp; Themes</div>
+              <div class="card-sub">Select a visual mode. Your choice persists across all pages and sessions.</div>
+              
+              <div class="theme-selector-grid">
+                <!-- SHADOW MODE -->
+                <div class="theme-card-option theme-opt-card" data-theme-val="shadow" onclick="setTheme('shadow')">
+                  <div class="theme-preview-box preview-shadow">
+                    <div class="tp-header">
+                      <div class="tp-dot"></div>
+                      <div class="tp-bar"></div>
+                    </div>
+                    <div class="tp-body">
+                      <div class="tp-card"></div>
+                      <div class="tp-accent-btn"></div>
+                    </div>
+                  </div>
+                  <div class="theme-card-info">
+                    <div class="theme-card-title">
+                      <span class="theme-radio">◉</span> SHADOW
+                    </div>
+                    <div class="theme-card-subtitle">Obsidian / Dark</div>
+                    <div class="theme-card-desc">Deep charcoal &amp; off-white contrast</div>
+                  </div>
                 </div>
-                <div class="theme-opt" onclick="setTheme(this)">
-                  <div class="theme-swatch" style="background: #064e3b"></div>
-                  <div class="theme-label">Midnight Green</div>
+
+                <!-- PAPER MODE -->
+                <div class="theme-card-option theme-opt-card" data-theme-val="paper" onclick="setTheme('paper')">
+                  <div class="theme-preview-box preview-paper">
+                    <div class="tp-header">
+                      <div class="tp-dot"></div>
+                      <div class="tp-bar"></div>
+                    </div>
+                    <div class="tp-body">
+                      <div class="tp-card"></div>
+                      <div class="tp-accent-btn"></div>
+                    </div>
+                  </div>
+                  <div class="theme-card-info">
+                    <div class="theme-card-title">
+                      <span class="theme-radio">○</span> PAPER
+                    </div>
+                    <div class="theme-card-subtitle">Clean / Light</div>
+                    <div class="theme-card-desc">Warm off-white &amp; crisp dark text</div>
+                  </div>
+                </div>
+
+                <!-- HACKER MODE -->
+                <div class="theme-card-option theme-opt-card" data-theme-val="hacker" onclick="setTheme('hacker')">
+                  <div class="theme-preview-box preview-hacker">
+                    <div class="tp-header">
+                      <div class="tp-dot"></div>
+                      <div class="tp-bar"></div>
+                    </div>
+                    <div class="tp-body">
+                      <div class="tp-card"></div>
+                      <div class="tp-accent-btn"></div>
+                    </div>
+                  </div>
+                  <div class="theme-card-info">
+                    <div class="theme-card-title">
+                      <span class="theme-radio">○</span> HACKER
+                    </div>
+                    <div class="theme-card-subtitle">Developer Workstation</div>
+                    <div class="theme-card-desc">Dark charcoal &amp; subtle mint green accents</div>
+                  </div>
                 </div>
               </div>
             </div>

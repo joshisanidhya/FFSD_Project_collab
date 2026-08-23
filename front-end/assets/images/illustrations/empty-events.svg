@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 160" width="100%" height="100%">
+  <rect width="200" height="160" fill="none"/>
+  <rect x="50" y="30" width="100" height="100" rx="16" fill="var(--bg-card)" stroke="var(--border)" stroke-width="2"/>
+  <circle cx="100" cy="70" r="20" fill="var(--bg-hover)" stroke="var(--border-strong)" stroke-width="1.5"/>
+  <text x="100" y="76" text-anchor="middle" fill="var(--text-muted)" font-size="18">📅</text>
+  <text x="100" y="112" text-anchor="middle" fill="var(--text-muted)" font-family="'DM Sans', sans-serif" font-size="11" font-weight="600">No events found</text>
+</svg>

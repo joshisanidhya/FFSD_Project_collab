@@ -7,16 +7,24 @@ let _communities = [];
 let _events      = [];
 
 // ── Load ──────────────────────────────────────────────────────────────────────
+let _isDashboardLoading = false;
+let _dashboardLoaded = false;
+
 async function loadDashboardData() {
+    if (_dashboardLoaded || _isDashboardLoading) return;
+    _isDashboardLoading = true;
     try {
         [_communities, _events] = await Promise.all([
             window.API.communities.getAll(),
             window.API.events.getAll(),
         ]);
+        _dashboardLoaded = true;
     } catch (err) {
         console.warn('[Dashboard] Backend unreachable, running in offline mode:', err.message);
         _communities = [];
         _events = [];
+    } finally {
+        _isDashboardLoading = false;
     }
 }
 
