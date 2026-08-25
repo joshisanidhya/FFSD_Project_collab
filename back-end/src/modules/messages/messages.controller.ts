@@ -2,6 +2,9 @@ import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post } from '@nestjs
 import { ApiTags } from '@nestjs/swagger';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AppRole } from '../rbac/role.enum';
+import { AddMessageAttachmentDto } from './dto/add-message-attachment.dto';
+import { CreateMessageDto } from './dto/create-message.dto';
+import { ReactMessageDto } from './dto/react-message.dto';
 import { MessagesService } from './messages.service';
 
 @ApiTags('messages')
@@ -17,13 +20,13 @@ export class MessagesController {
 
   @Post('messages')
   @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER)
-  create(@Body() payload: any) {
+  create(@Body() payload: CreateMessageDto) {
     return this.service.create(payload);
   }
 
   @Post('messages/:id/reactions')
   @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER)
-  react(@Param('id', ParseIntPipe) id: number, @Body() payload: any) {
+  react(@Param('id', ParseIntPipe) id: number, @Body() payload: ReactMessageDto) {
     return this.service.react(id, payload.emoji || '👍');
   }
 
@@ -35,7 +38,7 @@ export class MessagesController {
 
   @Post('messages/:id/attachments')
   @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER)
-  addAttachment(@Param('id', ParseIntPipe) id: number, @Body() payload: any) {
+  addAttachment(@Param('id', ParseIntPipe) id: number, @Body() payload: AddMessageAttachmentDto) {
     return this.service.addAttachment(id, payload.fileName || payload.url || 'attachment');
   }
 }

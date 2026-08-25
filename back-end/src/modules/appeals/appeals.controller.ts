@@ -3,6 +3,8 @@ import { ApiTags } from '@nestjs/swagger';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AppRole } from '../rbac/role.enum';
 import { AppealsService } from './appeals.service';
+import { AddAppealEvidenceDto } from './dto/add-appeal-evidence.dto';
+import { CreateAppealDto } from './dto/create-appeal.dto';
 
 @ApiTags('appeals')
 @Controller('appeals')
@@ -17,13 +19,13 @@ export class AppealsController {
 
   @Post()
   @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER)
-  create(@Body() payload: any) {
+  create(@Body() payload: CreateAppealDto) {
     return this.service.create(payload);
   }
 
   @Post(':id/evidence')
   @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER)
-  addEvidence(@Param('id', ParseIntPipe) id: number, @Body() payload: any) {
+  addEvidence(@Param('id', ParseIntPipe) id: number, @Body() payload: AddAppealEvidenceDto) {
     return this.service.addEvidence(id, payload);
   }
 }
