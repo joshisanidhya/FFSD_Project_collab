@@ -17,6 +17,38 @@ function getRole() {
     }
 }
 
+// ── Multipart upload wrapper ─────────────────────────────────────────────────
+// Separate from apiFetch since it must NOT set a JSON Content-Type header
+// (the browser needs to set the multipart/form-data boundary itself).
+async function apiUpload(file) {
+    const role = getRole();
+    const url = `${API_BASE}/uploads`;
+    const formData = new FormData();
+    formData.append('file', file);
+
+    let res;
+    try {
+        res = await fetch(url, {
+            method: 'POST',
+            headers: { 'x-role': role },
+            body: formData
+        });
+    } catch (err) {
+        console.warn('[API] Backend unreachable for upload — is NestJS running on port 3000?');
+        throw new Error('Backend unreachable. Please start the NestJS server.');
+    }
+
+    if (!res.ok) {
+        let errBody = {};
+        try { errBody = await res.json(); } catch (_) {}
+        const msg = errBody.message || `HTTP ${res.status}`;
+        console.error(`[API] POST /uploads → ${res.status}`, msg);
+        throw new Error(Array.isArray(msg) ? msg.join(', ') : msg);
+    }
+
+    return await res.json();
+}
+
 // ── Core fetch wrapper ───────────────────────────────────────────────────────
 async function apiFetch(path, options = {}) {
     const role = getRole();
@@ -425,6 +457,15 @@ const API = {
     },
     dashboard: {
         stats: ()            => API.get('/dashboard/stats'),
+    },
+    uploads: {
+        // Uploads the file to POST /api/uploads and resolves with the server
+        // response, plus an `absoluteUrl` field ready to use in <img src>/href.
+        upload: async (file) => {
+            const result = await apiUpload(file);
+            const serverRoot = API_BASE.replace(/\/api\/?$/, '');
+            return { ...result, absoluteUrl: `${serverRoot}${result.fileUrl}` };
+        },
     },
 };
 

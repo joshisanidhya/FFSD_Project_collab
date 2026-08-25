@@ -5,4 +5,5 @@ dist/
 .DS_Store
 db.json
 logs/
-uploads/
+uploads/*
+!uploads/.gitkeep

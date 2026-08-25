@@ -227,17 +227,23 @@ window.openPhotoModal = function(e) {
 
 window.closePhotoModal = function() {}; // No longer needed but kept to avoid breaking HTML references
 
-window.handleFileSelect = function(e) {
+window.handleFileSelect = async function(e) {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(event) {
-        window.tempAvatarData = event.target.result;
+
+    if (!window.API || !window.API.uploads) {
+        window.toast("⚠️ Upload service unavailable");
+        return;
+    }
+
+    try {
+        const result = await window.API.uploads.upload(file);
+        window.tempAvatarData = result.absoluteUrl;
         const avatars = ['topBarAvatar', 'navMainAvatar', 'mainAvatarPreview'];
         avatars.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
-                el.style.backgroundImage = `url(${event.target.result})`;
+                el.style.backgroundImage = `url(${result.absoluteUrl})`;
                 el.style.backgroundSize = 'cover';
                 el.style.backgroundPosition = 'center';
                 el.innerText = '';
@@ -245,8 +251,12 @@ window.handleFileSelect = function(e) {
         });
         window.toast("📷 Photo uploaded successfully!");
         markAsDirty();
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+        console.warn('Avatar upload failed:', err);
+        window.toast("⚠️ Failed to upload photo. Please try again.");
+    } finally {
+        e.target.value = '';
+    }
 };
 
 window.applyUploadedPhoto = function() {}; // No longer needed

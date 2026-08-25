@@ -1415,6 +1415,16 @@
       "post": {
         "operationId": "AuthController_register",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": ""
@@ -1429,6 +1439,16 @@
       "post": {
         "operationId": "AuthController_login",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": ""
@@ -1521,6 +1541,16 @@
       "post": {
         "operationId": "AppealsController_create",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAppealDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": ""
@@ -1544,6 +1574,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddAppealEvidenceDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": ""
@@ -1581,6 +1621,16 @@
       "post": {
         "operationId": "MessagesController_create",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMessageDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": ""
@@ -1604,6 +1654,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReactMessageDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": ""
@@ -1650,6 +1710,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddMessageAttachmentDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": ""
@@ -1676,6 +1746,16 @@
       "post": {
         "operationId": "AuditController_create",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAuditDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": ""
@@ -1702,6 +1782,16 @@
       "patch": {
         "operationId": "PlatformConfigController_update",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePlatformConfigDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": ""
@@ -2484,6 +2574,249 @@
           "userId",
           "communityId"
         ]
+      },
+      "RegisterDto": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 30,
+            "example": "player01"
+          },
+          "email": {
+            "type": "string",
+            "example": "player01@gameunity.local"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 100,
+            "example": "Demo@123"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "community_manager",
+              "moderator",
+              "user",
+              "gamer"
+            ],
+            "example": "user"
+          },
+          "firstName": {
+            "type": "string",
+            "example": "Player"
+          },
+          "lastName": {
+            "type": "string",
+            "description": "May be empty for single-word full names",
+            "example": "One"
+          }
+        },
+        "required": [
+          "username",
+          "email",
+          "password"
+        ]
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "login": {
+            "type": "string",
+            "description": "Email or username",
+            "example": "player01"
+          },
+          "password": {
+            "type": "string",
+            "example": "Demo@123"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "community_manager",
+              "moderator",
+              "user",
+              "gamer"
+            ],
+            "example": "user"
+          }
+        },
+        "required": [
+          "login",
+          "password"
+        ]
+      },
+      "CreateAppealDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "number",
+            "example": 4
+          },
+          "actionId": {
+            "type": "string",
+            "example": "ACT-DNX-2025-003847"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 1000,
+            "example": "I believe this action was taken in error because..."
+          },
+          "acknowledgement": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "example": "I understand the action but disagree with it"
+          },
+          "resolution": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "example": "Reverse the action"
+          },
+          "evidence": {
+            "example": [
+              "evidence-1.png"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "text",
+          "acknowledgement",
+          "resolution"
+        ]
+      },
+      "AddAppealEvidenceDto": {
+        "type": "object",
+        "properties": {
+          "fileName": {
+            "type": "string",
+            "example": "screenshot.png"
+          },
+          "url": {
+            "type": "string",
+            "example": "/uploads/1234-screenshot.png"
+          }
+        }
+      },
+      "CreateMessageDto": {
+        "type": "object",
+        "properties": {
+          "channelId": {
+            "type": "string",
+            "example": "general"
+          },
+          "communityId": {
+            "type": "number",
+            "example": 1
+          },
+          "authorId": {
+            "type": "number",
+            "example": 4
+          },
+          "authorName": {
+            "type": "string",
+            "example": "player01"
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "example": "Anyone queueing ranked tonight?"
+          },
+          "attachments": {
+            "example": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "channelId",
+          "content"
+        ]
+      },
+      "ReactMessageDto": {
+        "type": "object",
+        "properties": {
+          "emoji": {
+            "type": "string",
+            "example": "👍"
+          }
+        }
+      },
+      "AddMessageAttachmentDto": {
+        "type": "object",
+        "properties": {
+          "fileName": {
+            "type": "string",
+            "example": "screenshot.png"
+          },
+          "url": {
+            "type": "string",
+            "example": "/uploads/1234-screenshot.png"
+          }
+        }
+      },
+      "CreateAuditDto": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 100,
+            "example": "Community Created"
+          },
+          "actor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60,
+            "example": "admin01"
+          },
+          "target": {
+            "type": "string",
+            "example": "FPS Arena"
+          },
+          "reason": {
+            "type": "string",
+            "example": "Seed community"
+          }
+        },
+        "required": [
+          "action",
+          "actor"
+        ]
+      },
+      "UpdatePlatformConfigDto": {
+        "type": "object",
+        "properties": {
+          "registrationEnabled": {
+            "type": "boolean",
+            "example": true
+          },
+          "eventApprovalRequired": {
+            "type": "boolean",
+            "example": true
+          },
+          "reportEscalationEnabled": {
+            "type": "boolean",
+            "example": true
+          },
+          "maxEventCapacity": {
+            "type": "number",
+            "example": 500
+          }
+        }
       }
     }
   }

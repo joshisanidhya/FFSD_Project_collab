@@ -243,19 +243,27 @@ function saveCommunitySettings() {
   toast("Community updated successfully");
 }
 
-function uploadBanner(event) {
+async function uploadBanner(event) {
   const file = event.target.files[0];
   if (!file || !currentCommunity) return;
 
-  const reader = new FileReader();
-  reader.onload = function () {
-    currentCommunity.bannerImage = reader.result;
-    currentCommunity.banner = reader.result;
+  if (!window.API || !window.API.uploads) {
+    toast("Upload service unavailable");
+    return;
+  }
+
+  try {
+    const result = await window.API.uploads.upload(file);
+    currentCommunity.bannerImage = result.absoluteUrl;
+    currentCommunity.banner = result.absoluteUrl;
     renderBanner();
     setDirty(true);
-  };
-
-  reader.readAsDataURL(file);
+  } catch (err) {
+    console.warn('Banner upload failed:', err);
+    toast("Failed to upload banner. Please try again.");
+  } finally {
+    event.target.value = '';
+  }
 }
 
 function initialsFromName(name = "") {
