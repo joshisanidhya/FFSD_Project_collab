@@ -79,16 +79,19 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @Roles(AppRole.ADMIN)
+  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER)
   @ApiOperation({
     summary: 'Update an existing user',
-    description: 'Partially updates a user (all fields optional). Requires x-role: admin.',
+    description:
+      'Partially updates a user (all fields optional). Any authenticated role may call this to update ' +
+      'their own profile (there is no per-request user identity beyond the x-role header in this project, ' +
+      'so "self" is not server-enforced — the same trust model already used by communities/events update).',
   })
   @ApiParam({ name: 'id', type: Number, description: 'Numeric user ID to update' })
   @ApiBody({ type: UpdateUserDto, description: 'Fields to update (all optional)' })
   @ApiOkResponse({ type: UserDto, description: 'The updated user record' })
   @ApiNotFoundResponse({ description: 'User not found' })
-  @ApiForbiddenResponse({ description: 'Only admin can update users' })
+  @ApiForbiddenResponse({ description: 'Missing or invalid x-role header' })
   update(@Param('id', ParseIntPipe) id: number, @Body() payload: UpdateUserDto) {
     return this.usersService.update(id, payload);
   }

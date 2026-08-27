@@ -1,7 +1,8 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { db, nextId, ReportRecord } from '../../common/utils/in-memory-db';
+import { db, nextId, saveDb, ReportRecord } from '../../common/utils/in-memory-db';
 import { CreateReportDto } from './dto/create-report.dto';
 import { ReportStatus, ReportTargetType } from './dto/report.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class ReportsService {
@@ -32,6 +33,7 @@ export class ReportsService {
     };
 
     db.reports.push(created);
+    saveDb();
     return created;
   }
 
@@ -59,6 +61,17 @@ export class ReportsService {
     if (status === ReportStatus.ESCALATED) {
       report.escalatedTo = 'admin';
     }
+    saveDb();
+
+    if (status === ReportStatus.RESOLVED || status === ReportStatus.ESCALATED) {
+      NotificationsService.push({
+        userId: report.reporterId,
+        type: 'report_status',
+        text: `Your report on ${report.targetType} #${report.targetId} was ${status}`,
+        targetId: report.id,
+      });
+    }
+
     return report;
   }
 
@@ -77,6 +90,7 @@ export class ReportsService {
   remove(id: number): { message: string } {
     this.findOne(id);
     db.reports = db.reports.filter((item) => item.id !== id);
+    saveDb();
     return { message: `Report ${id} deleted` };
   }
 }

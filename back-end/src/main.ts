@@ -45,7 +45,7 @@ async function bootstrap() {
   });
 
   const config = new DocumentBuilder()
-    .setTitle('Se7enSquare Backend API')
+    .setTitle('Gameunity Backend API')
     .setDescription('In-memory NestJS backend for frontend integration and academic evaluation')
     .setVersion('1.0')
     .addServer('http://localhost:3000', 'Local Dev Server')
@@ -79,7 +79,7 @@ async function bootstrap() {
   });
 
   await app.listen(3000);
-  logger.log('Se7enSquare Backend successfully listening on http://localhost:3000', 'Bootstrap');
+  logger.log('Gameunity Backend successfully listening on http://localhost:3000', 'Bootstrap');
 }
 
 void bootstrap();

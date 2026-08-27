@@ -435,7 +435,7 @@
                     Temporarily hide your profile and pause notifications.
                   </div>
                 </div>
-                <button class="btn-danger" onclick="toast('⚠️ Deactivation flow started…')">
+                <button class="btn-danger" onclick="toast('⚠️ Account deactivation isn\'t available yet. Contact an admin if you need this.')">
                   Deactivate
                 </button>
               </div>
@@ -457,44 +457,6 @@
       </div>
 
       <div class="toast" id="toast"><span id="toastMsg"></span></div>
-
-      <div class="modal-overlay" id="photoModal">
-        <div class="modal-box">
-          <div class="modal-header">
-            <span>Upload Profile Photo</span>
-            <span class="modal-close" onclick="closePhotoModal()">✕</span>
-          </div>
-          <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
-            <div style="font-size: 24px; margin-bottom: 10px">📁</div>
-            <div style="font-size: 14px; font-weight: 600">
-              Click to browse or drag file here
-            </div>
-            <div style="font-size: 11px; color: var(--text-3); margin-top: 6px">
-              Accepted formats: JPG, JPEG, PNG, WEBP (Max: 5MB)
-            </div>
-          </div>
-          <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.webp" style="display: none" onchange="handleFileSelect(event)">
-
-          <div id="filePreview" style="display: none; text-align: center; margin-bottom: 16px">
-            <img id="imgPreview" src="" alt="Preview" style="
-                width: 100px;
-                height: 100px;
-                border-radius: 50%;
-                object-fit: cover;
-                border: 2px solid var(--accent);
-                margin-bottom: 10px;
-              ">
-            <div id="fileName" style="font-size: 12px; color: var(--text-2)"></div>
-          </div>
-
-          <div style="display: flex; gap: 10px; justify-content: flex-end">
-            <button class="tb-btn" onclick="closePhotoModal()">Cancel</button>
-            <button class="tb-btn save" id="btnApplyPhoto" onclick="applyUploadedPhoto()" disabled="">
-              Apply Photo
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
 
     <script src="../js/core/auth.js"></script>

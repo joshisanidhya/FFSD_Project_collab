@@ -153,7 +153,7 @@
       "patch": {
         "operationId": "UsersController_update",
         "summary": "Update an existing user",
-        "description": "Partially updates a user (all fields optional). Requires x-role: admin.",
+        "description": "Partially updates a user (all fields optional). Any authenticated role may call this to update their own profile (there is no per-request user identity beyond the x-role header in this project, so \"self\" is not server-enforced — the same trust model already used by communities/events update).",
         "parameters": [
           {
             "name": "x-role",
@@ -203,7 +203,7 @@
             }
           },
           "403": {
-            "description": "Only admin can update users"
+            "description": "Missing or invalid x-role header"
           },
           "404": {
             "description": "User not found"
@@ -483,7 +483,7 @@
       "delete": {
         "operationId": "CommunitiesController_remove",
         "summary": "Delete a community",
-        "description": "Permanently deletes a community and cascades to related memberships and events. Requires x-role: admin.",
+        "description": "Permanently deletes a community and cascades to related memberships and events. Same trust model as create/update — any authenticated role may call this; the frontend is responsible for only showing the Delete action to the community owner or an admin, since there is no per-request user identity to enforce it server-side.",
         "parameters": [
           {
             "name": "x-role",
@@ -524,7 +524,7 @@
             }
           },
           "403": {
-            "description": "Only admin can delete communities"
+            "description": "Missing or invalid x-role header"
           },
           "404": {
             "description": "Community not found"
@@ -1594,6 +1594,39 @@
         ]
       }
     },
+    "/api/appeals/{id}/status": {
+      "patch": {
+        "operationId": "AppealsController_updateStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAppealStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "appeals"
+        ]
+      }
+    },
     "/api/channels/{id}/messages": {
       "get": {
         "operationId": "MessagesController_findByChannel",
@@ -1831,10 +1864,93 @@
           "uploads"
         ]
       }
+    },
+    "/api/notifications": {
+      "get": {
+        "operationId": "NotificationsController_findAll",
+        "summary": "List notifications for a user, newest first",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of notifications for the given userId"
+          }
+        },
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/notifications/read-all": {
+      "patch": {
+        "operationId": "NotificationsController_markAllRead",
+        "summary": "Mark every notification for a user as read",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkAllReadDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/notifications/{id}": {
+      "patch": {
+        "operationId": "NotificationsController_update",
+        "summary": "Mark a single notification read/unread",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateNotificationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "notifications"
+        ]
+      }
     }
   },
   "info": {
-    "title": "Se7enSquare Backend API",
+    "title": "Gameunity Backend API",
     "description": "In-memory NestJS backend for frontend integration and academic evaluation",
     "version": "1.0",
     "contact": {}
@@ -1875,6 +1991,7 @@
             "type": "string",
             "enum": [
               "admin",
+              "owner",
               "community_manager",
               "moderator",
               "user",
@@ -1911,6 +2028,7 @@
             "type": "string",
             "enum": [
               "admin",
+              "owner",
               "community_manager",
               "moderator",
               "user",
@@ -1923,6 +2041,23 @@
             "minLength": 5,
             "maxLength": 160,
             "example": "Loves MMORPG and FPS."
+          },
+          "firstName": {
+            "type": "string",
+            "example": "Alex"
+          },
+          "lastName": {
+            "type": "string",
+            "description": "May be empty for single-word full names",
+            "example": "Morgan"
+          },
+          "phone": {
+            "type": "string",
+            "example": "+91 98765 43210"
+          },
+          "avatar": {
+            "type": "string",
+            "example": "/uploads/1234-avatar.png"
           }
         },
         "required": [
@@ -1948,6 +2083,7 @@
             "type": "string",
             "enum": [
               "admin",
+              "owner",
               "community_manager",
               "moderator",
               "user",
@@ -1960,6 +2096,23 @@
             "minLength": 5,
             "maxLength": 160,
             "example": "Loves MMORPG and FPS."
+          },
+          "firstName": {
+            "type": "string",
+            "example": "Alex"
+          },
+          "lastName": {
+            "type": "string",
+            "description": "May be empty for single-word full names",
+            "example": "Morgan"
+          },
+          "phone": {
+            "type": "string",
+            "example": "+91 98765 43210"
+          },
+          "avatar": {
+            "type": "string",
+            "example": "/uploads/1234-avatar.png"
           }
         }
       },
@@ -2084,6 +2237,44 @@
             "items": {
               "type": "string"
             }
+          },
+          "banner": {
+            "type": "string",
+            "example": "/uploads/1234-banner.png"
+          },
+          "bannerImage": {
+            "type": "string",
+            "example": "/uploads/1234-banner.png",
+            "description": "Alias of banner kept for frontend compatibility"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "public",
+              "private"
+            ],
+            "example": "public"
+          },
+          "icon": {
+            "type": "string",
+            "example": "⚡",
+            "description": "Emoji or image URL shown as the community icon"
+          },
+          "category": {
+            "type": "string",
+            "example": "Gaming"
+          },
+          "slug": {
+            "type": "string",
+            "example": "moba-masters"
+          },
+          "memberCount": {
+            "type": "number",
+            "example": 1
+          },
+          "onlineCount": {
+            "type": "number",
+            "example": 1
           }
         },
         "required": [
@@ -2132,6 +2323,44 @@
             "items": {
               "type": "string"
             }
+          },
+          "banner": {
+            "type": "string",
+            "example": "/uploads/1234-banner.png"
+          },
+          "bannerImage": {
+            "type": "string",
+            "example": "/uploads/1234-banner.png",
+            "description": "Alias of banner kept for frontend compatibility"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "public",
+              "private"
+            ],
+            "example": "public"
+          },
+          "icon": {
+            "type": "string",
+            "example": "⚡",
+            "description": "Emoji or image URL shown as the community icon"
+          },
+          "category": {
+            "type": "string",
+            "example": "Gaming"
+          },
+          "slug": {
+            "type": "string",
+            "example": "moba-masters"
+          },
+          "memberCount": {
+            "type": "number",
+            "example": 1
+          },
+          "onlineCount": {
+            "type": "number",
+            "example": 1
           }
         }
       },
@@ -2547,13 +2776,28 @@
           "pendingReportsCount": {
             "type": "number",
             "example": 2
+          },
+          "pendingAppealsCount": {
+            "type": "number",
+            "example": 1
+          },
+          "pendingEventsCount": {
+            "type": "number",
+            "example": 1
+          },
+          "totalMemberships": {
+            "type": "number",
+            "example": 4
           }
         },
         "required": [
           "totalUsers",
           "totalCommunities",
           "totalEvents",
-          "pendingReportsCount"
+          "pendingReportsCount",
+          "pendingAppealsCount",
+          "pendingEventsCount",
+          "totalMemberships"
         ]
       },
       "CreateMembershipDto": {
@@ -2598,6 +2842,7 @@
             "type": "string",
             "enum": [
               "admin",
+              "owner",
               "community_manager",
               "moderator",
               "user",
@@ -2637,6 +2882,7 @@
             "type": "string",
             "enum": [
               "admin",
+              "owner",
               "community_manager",
               "moderator",
               "user",
@@ -2708,6 +2954,24 @@
           }
         }
       },
+      "UpdateAppealStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "reviewed",
+              "approved",
+              "rejected"
+            ],
+            "example": "approved"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
       "CreateMessageDto": {
         "type": "object",
         "properties": {
@@ -2752,6 +3016,15 @@
           "emoji": {
             "type": "string",
             "example": "👍"
+          },
+          "actorId": {
+            "type": "number",
+            "description": "Who is reacting — used only to notify the message author",
+            "example": 5
+          },
+          "actorName": {
+            "type": "string",
+            "example": "player01"
           }
         }
       },
@@ -2815,8 +3088,44 @@
           "maxEventCapacity": {
             "type": "number",
             "example": 500
+          },
+          "autoModEnabled": {
+            "type": "boolean",
+            "example": true
+          },
+          "maxChannelsPerCommunity": {
+            "type": "number",
+            "example": 50
+          },
+          "maxCommunitiesPerUser": {
+            "type": "number",
+            "example": 10
           }
         }
+      },
+      "MarkAllReadDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "number",
+            "example": 5
+          }
+        },
+        "required": [
+          "userId"
+        ]
+      },
+      "UpdateNotificationDto": {
+        "type": "object",
+        "properties": {
+          "read": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "read"
+        ]
       }
     }
   }

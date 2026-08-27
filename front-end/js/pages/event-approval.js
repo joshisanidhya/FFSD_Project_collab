@@ -1,6 +1,7 @@
 const EVENTS_STORAGE_KEY = 'events';
 
 let communitiesById = {};
+let allEvents = []; // last set fetched by loadAllEvents(); viewEvent() reads from this, not localStorage
 
 function getEventStore() {
   try {
@@ -126,6 +127,7 @@ async function loadAllEvents() {
     console.warn('[EventApproval] API unreachable, using localStorage fallback:', e.message);
     events = getEventStore();
   }
+  allEvents = events;
 
   const pending  = events.filter(ev => ev.status === 'pending');
   const approved = events.filter(ev => ev.status === 'approved');
@@ -174,9 +176,13 @@ async function rejectEvent(id) {
 }
 
 function viewEvent(id) {
-  const events = getEventStore();
-  const event = events.find(item => Number(item.id) === Number(id));
-  if (!event) return;
+  // Read from the same array the list was just rendered from — not localStorage,
+  // which can be missing events that only ever existed on the backend.
+  const event = allEvents.find(item => Number(item.id) === Number(id));
+  if (!event) {
+    if (window.toast) window.toast('⚠️ Could not find that event.');
+    return;
+  }
 
   const capacity = event.maxAttendees || event.capacity || 'Open';
   document.getElementById('modalStatus').textContent = event.status || 'pending';

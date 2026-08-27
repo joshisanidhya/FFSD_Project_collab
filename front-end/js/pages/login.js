@@ -165,10 +165,14 @@ window.handleLogin = function(e) {
         }
 
         localStorage.setItem('nexus_user', JSON.stringify({
+            id: matchedUser.id,
             firstName: matchedUser.firstName || (matchedUser.fullname || matchedUser.username).split(' ')[0] || matchedUser.username,
             lastName: matchedUser.lastName || (matchedUser.fullname || '').split(' ').slice(1).join(' '),
             name: matchedUser.fullname || `${matchedUser.firstName || ''} ${matchedUser.lastName || ''}`.trim() || matchedUser.username,
             username: matchedUser.username,
+            email: matchedUser.email,
+            phone: matchedUser.phone,
+            bio: matchedUser.bio,
             role: matchedUser.role,
             avatar: matchedUser.avatar || null,
             loginTime: new Date().toISOString()
@@ -220,11 +224,12 @@ window.handleRegister = function(e) {
 
     setTimeout(async () => {
         const newUser = { username: handle, fullname, email, password, role };
+        let registeredUser = null;
         if (saveNewUser(newUser)) {
             try {
                 if (window.API?.auth) {
                     const nameParts = fullname.split(' ').filter(Boolean);
-                    await window.API.auth.register({
+                    registeredUser = await window.API.auth.register({
                         username: handle,
                         email,
                         password,
@@ -240,10 +245,12 @@ window.handleRegister = function(e) {
             // Auto-login
             const nameParts = fullname.split(' ').filter(Boolean);
             const user = {
+                id: registeredUser?.id,
                 firstName: nameParts[0] || '',
                 lastName: nameParts.slice(1).join(' '),
                 name: fullname,
                 username: handle,
+                email,
                 role,
                 avatar: null,
                 loginTime: new Date().toISOString()

@@ -12,4 +12,13 @@ export class DashboardStatsDto {
 
   @ApiProperty({ example: 2 })
   pendingReportsCount!: number;
+
+  @ApiProperty({ example: 1 })
+  pendingAppealsCount!: number;
+
+  @ApiProperty({ example: 1 })
+  pendingEventsCount!: number;
+
+  @ApiProperty({ example: 4 })
+  totalMemberships!: number;
 }

@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { AppealRecord, db, nextId, saveDb } from '../../common/utils/in-memory-db';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class AppealsService {
@@ -29,6 +30,24 @@ export class AppealsService {
     if (!appeal) throw new NotFoundException(`Appeal with id ${id} not found`);
     appeal.evidence.push(payload.url || payload.fileName || 'evidence-file');
     saveDb();
+    return appeal;
+  }
+
+  updateStatus(id: number, status: AppealRecord['status']): AppealRecord {
+    const appeal = db.appeals.find((item) => item.id === id);
+    if (!appeal) throw new NotFoundException(`Appeal with id ${id} not found`);
+    appeal.status = status;
+    saveDb();
+
+    if (appeal.userId && (status === 'approved' || status === 'rejected')) {
+      NotificationsService.push({
+        userId: appeal.userId,
+        type: 'system',
+        text: `Your appeal (#${appeal.id}) was ${status}`,
+        targetId: appeal.id,
+      });
+    }
+
     return appeal;
   }
 }

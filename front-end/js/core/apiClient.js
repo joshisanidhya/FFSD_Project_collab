@@ -1,5 +1,5 @@
 /**
- * Se7enSquare — Live API Client
+ * Gameunity — Live API Client
  * Replaces all window.NexusCRUD / window.NexusData mock calls.
  * All requests go to the NestJS backend at http://localhost:3000/api
  */
@@ -354,7 +354,10 @@ const API = {
         }),
     },
     memberships: {
-        getAll:  ()          => API.get('/memberships'),
+        getAll:  (params = {}) => {
+            const qs = new URLSearchParams(params).toString();
+            return API.get(`/memberships${qs ? `?${qs}` : ''}`);
+        },
         create:  (body)      => API.post('/memberships', body),
         delete:  (id)        => API.delete(`/memberships/${id}`),
     },
@@ -400,6 +403,14 @@ const API = {
             localWrite('appeals', records);
             return item;
         }),
+        updateStatus: (id, status) => withLocalFallback(`/appeals/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }, () => {
+            const records = localRead('appeals');
+            const item = records.find(record => Number(record.id) === Number(id));
+            if (!item) throw new Error('Appeal not found');
+            item.status = status;
+            localWrite('appeals', records);
+            return item;
+        }),
     },
     messages: {
         getByChannel: (channelId) => withLocalFallback(`/channels/${encodeURIComponent(channelId)}/messages`, { method: 'GET' }, () => localRead('messages').filter(item => item.channelId === channelId)),
@@ -410,7 +421,7 @@ const API = {
             localWrite('messages', records);
             return created;
         }),
-        react: (id, emoji) => withLocalFallback(`/messages/${id}/reactions`, { method: 'POST', body: JSON.stringify({ emoji }) }, () => {
+        react: (id, emoji, actor = {}) => withLocalFallback(`/messages/${id}/reactions`, { method: 'POST', body: JSON.stringify({ emoji, actorId: actor.id, actorName: actor.name }) }, () => {
             const records = localRead('messages');
             const item = records.find(record => Number(record.id) === Number(id));
             if (!item) throw new Error('Message not found');
@@ -458,6 +469,11 @@ const API = {
     dashboard: {
         stats: ()            => API.get('/dashboard/stats'),
     },
+    notifications: {
+        getAll: (userId) => API.get(`/notifications?userId=${encodeURIComponent(userId)}`),
+        markRead: (id, read = true) => API.patch(`/notifications/${id}`, { read }),
+        markAllRead: (userId) => API.patch('/notifications/read-all', { userId }),
+    },
     uploads: {
         // Uploads the file to POST /api/uploads and resolves with the server
         // response, plus an `absoluteUrl` field ready to use in <img src>/href.
@@ -470,5 +486,5 @@ const API = {
 };
 
 window.API = API;
-console.log('%c[Se7enSquare] %cLive API client ready → http://localhost:3000/api',
+console.log('%c[Gameunity] %cLive API client ready → http://localhost:3000/api',
     'color: #5B6EF5; font-weight: bold;', 'color: #10B981;');

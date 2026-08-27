@@ -27,7 +27,7 @@ export class MessagesController {
   @Post('messages/:id/reactions')
   @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER)
   react(@Param('id', ParseIntPipe) id: number, @Body() payload: ReactMessageDto) {
-    return this.service.react(id, payload.emoji || '👍');
+    return this.service.react(id, payload.emoji || '👍', payload.actorId, payload.actorName);
   }
 
   @Patch('messages/:id/pin')

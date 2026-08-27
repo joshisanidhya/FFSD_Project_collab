@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en"><head>
 <meta charset="utf-8">
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
-<title>NexusHub – Appeal Submission</title>
+<title>Gameunity – Appeal Submission</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&amp;family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
 <link href="../css/global.css" rel="stylesheet">
 <link href="../css/pages/appeal.css" rel="stylesheet">
@@ -201,7 +201,7 @@
 <div class="success-icon">⚖️</div>
 <div class="success-title">Appeal Submitted</div>
 <div class="success-sub">Your appeal has been received and logged. A senior moderator will review your case and respond within <strong>48–72 hours</strong>. You'll be notified in-app and via email once a decision is made.</div>
-<div class="appeal-ref">Appeal ID: APL-DNX-2025-008241</div>
+<div class="appeal-ref">Appeal ID: <span id="appealRefId">—</span></div>
 <div class="what-next">
 <div class="what-next-title">What happens next</div>
 <div class="what-next-item">
@@ -221,7 +221,10 @@
               You receive a notification and email with the full outcome and any next steps.
             </div>
 </div>
-<button class="btn-home" onclick="window.location.href='dashboard.html'">Return to Home</button>
+<div style="display:flex;gap:12px;flex-wrap:wrap;">
+<button class="btn-home" onclick="window.location.href='dashboard.html'">Go to Home Page</button>
+<button class="btn-home" style="background:transparent;border:1px solid rgba(255,255,255,0.16);" onclick="window.resetAppeal()">Submit Another Appeal</button>
+</div>
 </div>
 </div>
 </div>

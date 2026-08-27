@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsEnum, IsOptional, IsString, Length } from 'class-validator';
+import { IsEmail, IsEnum, IsOptional, IsString, Length, MaxLength } from 'class-validator';
 import { AppRole } from '../../rbac/role.enum';
 
 export class CreateUserDto {
@@ -21,4 +21,28 @@ export class CreateUserDto {
   @IsString()
   @Length(5, 160)
   bio?: string;
+
+  @ApiPropertyOptional({ example: 'Alex' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  firstName?: string;
+
+  @ApiPropertyOptional({ description: 'May be empty for single-word full names', example: 'Morgan' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  lastName?: string;
+
+  @ApiPropertyOptional({ example: '+91 98765 43210' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  phone?: string;
+
+  @ApiPropertyOptional({ example: '/uploads/1234-avatar.png' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  avatar?: string;
 }

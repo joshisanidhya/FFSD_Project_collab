@@ -11,7 +11,7 @@
  * Formats a date for event displays.
  * @example '2026-04-15' -> 'April 15, 2026'
  */
-export function formatEventDate(dateString) {
+function formatEventDate(dateString) {
     if (!dateString) return "Date TBD";
     const options = { year: 'numeric', month: 'long', day: 'numeric' };
     return new Date(dateString).toLocaleDateString('en-IN', options);
@@ -21,7 +21,7 @@ export function formatEventDate(dateString) {
  * Gets a timestamp for chat messages.
  * @example '18:30'
  */
-export function getCurrentShortTime() {
+function getCurrentShortTime() {
     return new Date().toLocaleTimeString('en-IN', { 
         hour: '2-digit', 
         minute: '2-digit', 
@@ -33,7 +33,7 @@ export function getCurrentShortTime() {
  * Converts a timestamp into a relative string.
  * @example 1711732800000 -> '5m ago'
  */
-export function formatRelativeTime(timestamp) {
+function formatRelativeTime(timestamp) {
     const now = new Date();
     const then = new Date(timestamp);
     const diffInSeconds = Math.floor((now - then) / 1000);
@@ -52,7 +52,7 @@ export function formatRelativeTime(timestamp) {
  * Escapes HTML characters to prevent Cross-Site Scripting (XSS).
  * CRITICAL: Use this for all user-generated content in chat.
  */
-export function escapeHTML(str) {
+function escapeHTML(str) {
     if (!str) return "";
     const map = {
         '&': '&amp;',
@@ -73,7 +73,7 @@ export function escapeHTML(str) {
  * @param {string} message 
  * @param {string} type - 'success' | 'error' | 'info' | 'warning'
  */
-export function showToast(message, type = 'info') {
+function showToast(message, type = 'info') {
     let container = document.getElementById('nexus-toast-container');
     
     // Create container if missing
@@ -142,5 +142,11 @@ export function showToast(message, type = 'info') {
     }, delay);
 }
 
-// Attach to window for easy access in non-module scripts if needed
+// Plain script (not an ES module) so it can be loaded with a normal <script src>
+// tag like every other core file — attach everything it exports to window.
+window.formatEventDate = formatEventDate;
+window.getCurrentShortTime = getCurrentShortTime;
+window.formatRelativeTime = formatRelativeTime;
+window.escapeHTML = escapeHTML;
+window.showToast = showToast;
 window.toast = showToast;

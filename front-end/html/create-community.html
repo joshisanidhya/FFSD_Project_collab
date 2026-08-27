@@ -88,33 +88,20 @@
 <div class="fg-row">
 <div>
 <div class="f-label">Community URL</div>
-<input class="f-in" id="comm-slug" oninput="slugify()" placeholder="devnexus">
-<div class="f-desc">nexushub.io/c/<span class="u-extracted-174" id="slug-preview">devnexus</span></div>
-</div>
-<div>
-<label class="f-label" for="primary-language">Primary Language</label>
-<div class="sel-wrap">
-<select class="f-sel" id="primary-language" name="language">
-<option value="english">English</option>
-<option value="spanish">Spanish</option>
-<option value="french">French</option>
-<option value="german">German</option>
-<option value="japanese">Japanese</option>
-<option value="hindi">Hindi</option>
-</select>
-</div>
+<input class="f-in" id="comm-slug" oninput="slugify()" placeholder="pro-gamers">
+<div class="f-desc">gameunity.io/c/<span class="u-extracted-174" id="slug-preview">pro-gamers</span></div>
 </div>
 </div>
 <div class="fg">
 <div class="f-label">Category <span class="f-req">*</span></div>
 <div class="cat-grid" id="cat-grid">
-<div class="cat-item on" onclick="pickCat(this,'Gaming')"><div class="cat-ico">🎮</div><div class="cat-lbl">Gaming</div></div>
-<div class="cat-item" onclick="pickCat(this,'Design')"><div class="cat-ico">🎨</div><div class="cat-lbl">Design</div></div>
-<div class="cat-item" onclick="pickCat(this,'Coding')"><div class="cat-ico">💻</div><div class="cat-lbl">Coding</div></div>
-<div class="cat-item" onclick="pickCat(this,'Education')"><div class="cat-ico">📚</div><div class="cat-lbl">Education</div></div>
-<div class="cat-item" onclick="pickCat(this,'Music')"><div class="cat-ico">🎵</div><div class="cat-lbl">Music</div></div>
-<div class="cat-item" onclick="pickCat(this,'Fitness')"><div class="cat-ico">💪</div><div class="cat-lbl">Fitness</div></div>
-<div class="cat-item" onclick="pickCat(this,'Business')"><div class="cat-ico">📈</div><div class="cat-lbl">Business</div></div>
+<div class="cat-item on" onclick="pickCat(this,'FPS')"><div class="cat-ico">🎯</div><div class="cat-lbl">FPS</div></div>
+<div class="cat-item" onclick="pickCat(this,'MOBA')"><div class="cat-ico">⚔️</div><div class="cat-lbl">MOBA</div></div>
+<div class="cat-item" onclick="pickCat(this,'RPG')"><div class="cat-ico">🗡️</div><div class="cat-lbl">RPG</div></div>
+<div class="cat-item" onclick="pickCat(this,'Strategy')"><div class="cat-ico">🧠</div><div class="cat-lbl">Strategy</div></div>
+<div class="cat-item" onclick="pickCat(this,'Sports')"><div class="cat-ico">🏆</div><div class="cat-lbl">Sports</div></div>
+<div class="cat-item" onclick="pickCat(this,'Indie')"><div class="cat-ico">🕹️</div><div class="cat-lbl">Indie</div></div>
+<div class="cat-item" onclick="pickCat(this,'Speedrunning')"><div class="cat-ico">⏱️</div><div class="cat-lbl">Speedrunning</div></div>
 <div class="cat-item" onclick="pickCat(this,'Other')"><div class="cat-ico">✦</div><div class="cat-lbl">Other</div></div>
 </div>
 </div>
@@ -354,7 +341,6 @@
 <div class="bb-step" id="bb-step">Step 1 of 4</div>
 <div class="bb-acts">
 <button class="btn-ghost u-extracted-243" id="btn-back" onclick="prevStep()">← Back</button>
-<button class="btn-ghost" onclick="toast('Draft saved')">Save Draft</button>
 <button class="btn-primary" id="btn-next" onclick="nextStep()">Continue →</button>
 </div>
 </div>

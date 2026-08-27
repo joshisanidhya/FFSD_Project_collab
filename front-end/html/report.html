@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en"><head>
 <meta charset="utf-8">
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
-<title>NexusHub – Report Content</title>
+<title>Gameunity – Report Content</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&amp;family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
 <link href="../css/global.css" rel="stylesheet">
 <link href="../css/components/sidebar.css" rel="stylesheet">
@@ -45,64 +45,74 @@
 <div class="step-label">Review &amp; Submit</div>
 </div>
 </div>
-<!-- ── PANEL 1: SELECT CONTENT TYPE ── -->
+<!-- ── PANEL 1: SELECT TARGET ── -->
 <div class="panel active" id="panel1">
 <div class="panel-card">
-<div class="panel-title">What are you reporting?</div>
-<div class="panel-sub">Select whether you're reporting a specific message or a user's behaviour. Reports are anonymous and reviewed by community moderators within 24 hours.</div>
-<div class="type-cards">
-<div class="type-card selected" id="tcMsg" onclick="selectType('message')">
-<div class="type-card-check">✓</div>
-<div class="type-card-icon">💬</div>
-<div class="type-card-title">Report a Message</div>
-<div class="type-card-desc">A specific message contains harmful, inappropriate, or rule-breaking content.</div>
-</div>
-<div class="type-card" id="tcUser" onclick="selectType('user')">
-<div class="type-card-check"></div>
-<div class="type-card-icon">👤</div>
-<div class="type-card-title">Report a User</div>
-<div class="type-card-desc">A user's overall behaviour or profile violates community rules or platform terms.</div>
-</div>
-</div>
-<!-- Message Preview -->
-<div id="msgPreviewWrap">
+
+<!-- Shown when arriving with real context already attached (from a chat message,
+     a community page, or a member row) — no picker needed, just confirm it. -->
+<div id="contextTargetWrap" style="display:none;">
+<div class="panel-title">Confirm what you're reporting</div>
+<div class="panel-sub">Reports are anonymous and reviewed by community moderators within 24 hours.</div>
+<div id="msgPreviewWrap" style="display:none;">
 <div class="preview-label">Reported Message</div>
 <div class="msg-preview">
-<div class="mp-av u-extracted-206">BX</div>
+<div class="mp-av">💬</div>
 <div class="mp-body">
 <div class="mp-header">
-<span class="mp-name u-extracted-283">BadActor_X</span>
-<span class="mp-ch">#general</span>
-<span class="mp-time">Today, 10:28 AM</span>
+<span class="mp-name" id="ctxMsgAuthor">—</span>
+<span class="mp-ch" id="ctxMsgChannel"></span>
+<span class="mp-time" id="ctxMsgTime"></span>
 </div>
-<div class="mp-text">Everyone in this channel is absolutely pathetic. You're all failures who couldn't code your way out of a paper bag. Stop wasting everyone's time with your garbage questions 🤮</div>
+<div class="mp-text" id="ctxMsgText">Loading message…</div>
 </div>
 <div class="mp-flag">Selected</div>
 </div>
 </div>
-<!-- User Preview -->
-<div class="u-extracted-243" id="userPreviewWrap">
+<div id="userPreviewWrap" style="display:none;">
 <div class="preview-label">Reported User</div>
-<div class="user-preview u-extracted-310">
-<div class="up-av">BX</div>
+<div class="user-preview">
+<div class="up-av" id="ctxUserAv">?</div>
 <div class="up-info">
-<div class="up-name">BadActor_X</div>
-<div class="up-meta">
-<span>Member since Jan 2025</span>
-<span>Pro Gamers</span>
-</div>
+<div class="up-name" id="ctxUserName">Loading…</div>
+<div class="up-meta"><span id="ctxUserMeta"></span></div>
 </div>
 <div class="up-flag">Selected</div>
 </div>
 </div>
+<div id="commPreviewWrap" style="display:none;">
+<div class="preview-label">Reported Community</div>
+<div class="user-preview">
+<div class="up-av" id="ctxCommIcon">🏘️</div>
+<div class="up-info">
+<div class="up-name" id="ctxCommName">Loading…</div>
+</div>
+<div class="up-flag">Selected</div>
+</div>
+</div>
+<div class="btn-row" style="margin-top:16px;">
+<button class="btn-back" onclick="window.location.href='report.html'">Report something else instead</button>
+<button class="btn-next" onclick="goStep(2)">Choose Reason →</button>
+</div>
+</div>
+
+<!-- Shown when arriving with no context (e.g. the general sidebar "Report" link) —
+     the only way to reach report.html without a specific target already picked. -->
+<div id="userSearchWrap">
+<div class="panel-title">Who are you reporting?</div>
+<div class="panel-sub">Search by username, or paste a numeric User ID directly. To report a specific message, use "Report Message" from inside the channel instead.</div>
+<div class="additional-field">
+<label>Search users or enter a User ID</label>
+<input type="text" id="userSearchInput" placeholder="e.g. player01 or 4" autocomplete="off" oninput="handleUserSearch(this.value)">
+</div>
+<div id="userSearchResults" style="display:flex;flex-direction:column;gap:8px;margin-top:10px;"></div>
+</div>
+
 <div class="u-extracted-311">
 <div class="notice-bar">
 <div class="notice-icon">🔒</div>
 <div class="notice-text"><strong>Your report is fully anonymous.</strong> The reported user will never know who submitted this report. False or malicious reports may result in action against your own account.</div>
 </div>
-</div>
-<div class="btn-row u-extracted-311">
-<button class="btn-next" onclick="goStep(2)">Choose Reason →</button>
 </div>
 </div>
 </div>
@@ -183,16 +193,8 @@
 <div class="review-val" id="rvType">Message Report</div>
 </div>
 <div class="review-row">
-<div class="review-key">Reported User</div>
-<div class="review-val red">BadActor_X</div>
-</div>
-<div class="review-row">
-<div class="review-key">Channel</div>
-<div class="review-val">#general · Pro Gamers</div>
-</div>
-<div class="review-row">
-<div class="review-key">Message Date</div>
-<div class="review-val">March 5, 2025 · 10:28 AM</div>
+<div class="review-key">Reporting</div>
+<div class="review-val red" id="rvTarget">—</div>
 </div>
 <div class="review-row">
 <div class="review-key">Violation Reason</div>
@@ -208,21 +210,20 @@
 </div>
 </div>
 <!-- Reported content recap -->
-<div class="preview-label">Content Being Reported</div>
-<div class="msg-preview u-extracted-144">
-<div class="mp-av u-extracted-206">BX</div>
+<div class="preview-label" id="rvContentLabel" style="display:none;">Content Being Reported</div>
+<div class="msg-preview u-extracted-144" id="rvContentRecap" style="display:none;">
+<div class="mp-av">💬</div>
 <div class="mp-body">
 <div class="mp-header">
-<span class="mp-name u-extracted-283">BadActor_X</span>
-<span class="mp-ch">#general</span>
-<span class="mp-time">10:28 AM</span>
+<span class="mp-name" id="rvRecapAuthor"></span>
+<span class="mp-ch" id="rvRecapChannel"></span>
 </div>
-<div class="mp-text">Everyone in this channel is absolutely pathetic. You're all failures who couldn't code your way out of a paper bag. Stop wasting everyone's time with your garbage questions 🤮</div>
+<div class="mp-text" id="rvRecapText"></div>
 </div>
 </div>
 <div class="confirm-row">
 <input id="confirmCheck" onchange="document.getElementById('submitBtn').disabled=!this.checked" type="checkbox">
-<label for="confirmCheck">I confirm that this report is <strong>accurate and made in good faith</strong>. I understand that submitting false or malicious reports is a violation of NexusHub's Terms of Service and may result in action against my account.</label>
+<label for="confirmCheck">I confirm that this report is <strong>accurate and made in good faith</strong>. I understand that submitting false or malicious reports is a violation of Gameunity's Terms of Service and may result in action against my account.</label>
 </div>
 <div class="btn-row">
 <button class="btn-back" onclick="goStep(2)">← Back</button>
@@ -237,7 +238,7 @@
 <div class="success-circle">✓</div>
 <div class="success-title">Report Submitted</div>
 <div class="success-sub">Your report has been received and will be reviewed by a moderator within <strong>24 hours</strong>. We take all reports seriously and will take appropriate action if the content violates our community guidelines.</div>
-<div class="success-ref">Report ID: RPT-DNX-2025-039471</div>
+<div class="success-ref">Report ID: <span id="successRefId">—</span></div>
 <div class="u-extracted-313">
 <button class="btn-done" onclick="window.location.href='dashboard.html'">Return to Dashboard</button>
 <button class="u-extracted-314" onclick="resetForm()">Submit Another Report</button>

@@ -1,5 +1,5 @@
 /**
- * Se7enSquare — Community Page
+ * Gameunity — Community Page
  * Fetches community data from GET /api/communities/:id and events from GET /api/events
  */
 
@@ -101,7 +101,8 @@ function renderChannelsFromTags(tags) {
 
     const html = ['<div class="ch-group-title">💬 Channels</div>'];
     tags.forEach(item => {
-        const chanName = typeof item === 'object' ? item.name : item;
+        const rawName = typeof item === 'object' ? item.name : item;
+        const chanName = escapeHTML(rawName);
         const chanType = typeof item === 'object' && item.type === 'Voice' ? 'VC' : '#';
         if (isMember) {
             // Member: clickable channel
@@ -155,8 +156,8 @@ function renderCommunityEvents() {
                     <div class="ev-day">${day}</div>
                 </div>
                 <div class="ev-info">
-                    <div class="ev-name">${ev.title}</div>
-                    <div class="ev-meta">${ev.time || '—'} · ${ev.attendees || 0} attending</div>
+                    <div class="ev-name">${escapeHTML(ev.title)}</div>
+                    <div class="ev-meta">${escapeHTML(ev.time) || '—'} · ${ev.attendees || 0} attending</div>
                 </div>
                 <span class="ev-badge">${ev.status}</span>
             </div>
@@ -230,23 +231,64 @@ window.switchTab = function (tabName, btn) {
 
 function initCommunityNavigation(communityId) {
     const manageBtn = document.getElementById('rbacManageBtn');
-    if (!manageBtn) return;
+    const deleteBtn = document.getElementById('rbacDeleteBtn');
 
     const user     = typeof getCurrentUser === 'function' ? getCurrentUser() : {};
     const ownedIds = JSON.parse(localStorage.getItem('nexus_owned_community_ids') || '[]');
 
-    // Show settings only if: created this community, ownerId matches, or is admin
+    // Single source of truth for "am I the owner" — this is the one real check
+    // on this page; there used to be a second, disagreeing one keyed off a
+    // different localStorage key that only the (now-removed) inline script used.
     const isOwner = ownedIds.includes(String(communityId))
         || (user?.id && String(_comm?.ownerId) === String(user.id))
         || user?.role === 'admin';
 
-    if (isOwner) {
+    // NOTE: the "hidden" class on these buttons in the HTML has no matching CSS
+    // rule anywhere — it does nothing. Visibility is controlled entirely by the
+    // inline style set here, for both buttons, so a non-owner never sees either.
+    if (manageBtn) {
         manageBtn.href = `community-settings.html?id=${encodeURIComponent(communityId)}`;
-        manageBtn.style.display = '';
-    } else {
-        manageBtn.style.display = 'none';
+        manageBtn.style.display = isOwner ? '' : 'none';
+    }
+    if (deleteBtn) {
+        deleteBtn.style.display = isOwner ? '' : 'none';
     }
 }
+
+window.requestDeleteCommunity = async function () {
+    if (!_comm) return;
+    const confirmed = confirm(
+        `Are you sure you want to permanently delete "${_comm.name}"? This action cannot be undone.`,
+    );
+    if (!confirmed) return;
+
+    try {
+        await window.API.communities.delete(_comm.id);
+    } catch (err) {
+        if (window.toast) window.toast('⚠️ Could not delete community: ' + err.message);
+        else alert('Could not delete community: ' + err.message);
+        return;
+    }
+
+    const ownedIds = JSON.parse(localStorage.getItem('nexus_owned_community_ids') || '[]');
+    localStorage.setItem(
+        'nexus_owned_community_ids',
+        JSON.stringify(ownedIds.filter((id) => String(id) !== String(_comm.id))),
+    );
+    const joinedIds = JSON.parse(localStorage.getItem('nexus_joined_communities') || '[]');
+    localStorage.setItem(
+        'nexus_joined_communities',
+        JSON.stringify(joinedIds.filter((id) => String(id) !== String(_comm.id))),
+    );
+
+    if (window.toast) window.toast('🗑️ Community deleted.');
+    setTimeout(() => { window.location.href = 'dashboard.html'; }, 600);
+};
+
+window.reportThisCommunity = function () {
+    const targetId = _comm?.id || new URLSearchParams(window.location.search).get('id') || '';
+    window.location.href = `report.html?targetType=community&targetId=${encodeURIComponent(targetId)}`;
+};
 
 window.showJoinPrompt = function () {
     if (window.toast) window.toast('🔒 Join this community first to access channels!');

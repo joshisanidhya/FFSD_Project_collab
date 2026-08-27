@@ -30,6 +30,32 @@
   --border-2: var(--border);
   --header-h: 60px;
 }
+
+/* ── Theme & accessibility overrides (Profile Settings > Appearance/Accessibility) ── */
+html[data-theme="midnight-green"] {
+  --accent: #10b981;
+  --accent-hover: #34d399;
+}
+html[data-font-size="small"] { font-size: 14px; }
+html[data-font-size="medium"] { font-size: 16px; }
+html[data-font-size="large"] { font-size: 19px; }
+
+html.a11y-high-contrast {
+  filter: contrast(1.2) saturate(1.15);
+}
+html.a11y-high-contrast body {
+  --border: rgba(255, 255, 255, 0.22);
+  --border-strong: rgba(255, 255, 255, 0.32);
+}
+html.a11y-reduced-motion *,
+html.a11y-reduced-motion *::before,
+html.a11y-reduced-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
 *,
 *::before,
 *::after {

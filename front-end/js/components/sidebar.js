@@ -1,5 +1,5 @@
 /**
- * Se7enSquare - Unified Role-Based Sidebar
+ * Gameunity - Unified Role-Based Sidebar
  * Section-based navigation for user, moderator, community manager, and admin.
  */
 
@@ -42,11 +42,23 @@ const NAV_ADMIN = {
   ],
 };
 
+// Owner sees statistics/health only — not the regular user nav (dashboard,
+// discovery, etc. are all off-limits per PAGE_ACCESS anyway).
+const NAV_OWNER = {
+  label: null,
+  sectionId: 'owner',
+  items: [
+    { id: 'owner-dash', name: 'Platform Statistics', link: 'owner-dashboard.html', icon: '📊', badge: 'OWNER' },
+    { id: 'profile', name: 'Profile', link: 'profile-settings.html', icon: '⚙️' },
+  ],
+};
+
 const ROLE_META = {
   user: { tier: 'User', color: '#34d399', accent: '#34d399', badge: null },
   moderator: { tier: 'Moderator', color: '#818cf8', accent: '#6366f1', badge: 'MODERATOR' },
   community_manager: { tier: 'Community Manager', color: '#06b6d4', accent: '#06b6d4', badge: 'CM' },
   admin: { tier: 'System Admin', color: '#f59e0b', accent: '#f59e0b', badge: 'ADMIN' },
+  owner: { tier: 'Owner', color: '#e879f9', accent: '#e879f9', badge: 'OWNER' },
 };
 
 let _collapsed = localStorage.getItem('nexus_sidebar_collapsed') === 'true';
@@ -60,6 +72,8 @@ function _normalizeRole(role) {
 
 function _getSections(role) {
   const normalizedRole = _normalizeRole(role);
+  if (normalizedRole === 'owner') return [NAV_OWNER];
+
   const sections = [NAV_USER];
   if (normalizedRole === 'moderator' || normalizedRole === 'admin') sections.push(NAV_MOD);
   if (normalizedRole === 'community_manager' || normalizedRole === 'admin') sections.push(NAV_CM);
@@ -70,6 +84,7 @@ function _getSections(role) {
 function _getActivePage() {
   const page = (window.location.pathname.split('/').pop() || 'dashboard.html').replace('.html', '');
   if (page === 'admin-dashboard') return 'admin-dash';
+  if (page === 'owner-dashboard') return 'owner-dash';
   return page;
 }
 

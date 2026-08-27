@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ChatMessageRecord, db, nextId, saveDb } from '../../common/utils/in-memory-db';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class MessagesService {
@@ -25,10 +26,22 @@ export class MessagesService {
     return created;
   }
 
-  react(id: number, emoji: string): ChatMessageRecord {
+  react(id: number, emoji: string, actorId?: number, actorName?: string): ChatMessageRecord {
     const message = this.findOne(id);
     message.reactions[emoji] = (message.reactions[emoji] || 0) + 1;
     saveDb();
+
+    // Notify the message's author, unless they reacted to their own message.
+    if (message.authorId && actorId && String(actorId) !== String(message.authorId)) {
+      NotificationsService.push({
+        userId: message.authorId,
+        type: 'reaction',
+        text: `${actorName || 'Someone'} reacted ${emoji} to your message`,
+        channelId: message.channelId,
+        targetId: message.id,
+      });
+    }
+
     return message;
   }
 

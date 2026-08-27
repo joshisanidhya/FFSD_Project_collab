@@ -24,4 +24,23 @@ export class UpdatePlatformConfigDto {
   @IsInt()
   @Min(1)
   maxEventCapacity?: number;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  autoModEnabled?: boolean;
+
+  @ApiPropertyOptional({ example: 50 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  maxChannelsPerCommunity?: number;
+
+  @ApiPropertyOptional({ example: 10 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  maxCommunitiesPerUser?: number;
 }

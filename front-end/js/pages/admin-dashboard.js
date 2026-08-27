@@ -1,5 +1,5 @@
 /**
- * Se7enSquare — System Admin Dashboard
+ * Gameunity — System Admin Dashboard
  * All data from live backend API: users, communities, events, reports.
  */
 
@@ -17,8 +17,10 @@ let _users       = [];
 let _communities = [];
 let _events      = [];
 let _reports     = [];
+let _appeals     = [];
 let _auditLog    = [];
 let _platformConfig = {};
+let currentAppealFilter = 'all';
 
 // ── Auth check ────────────────────────────────────────────────────────────────
 (function checkAuth() {
@@ -34,11 +36,12 @@ let _platformConfig = {};
 // ── Load all data ─────────────────────────────────────────────────────────────
 async function loadAll() {
     try {
-        [_users, _communities, _events, _reports, _auditLog, _platformConfig] = await Promise.all([
+        [_users, _communities, _events, _reports, _appeals, _auditLog, _platformConfig] = await Promise.all([
             window.API.users.getAll(),
             window.API.communities.getAll(),
             window.API.events.getAll(),
             window.API.reports.getAll(),
+            window.API.appeals.getAll(),
             window.API.auditLog.getAll(),
             window.API.platformConfig.get(),
         ]);
@@ -61,13 +64,13 @@ window.navTo = function (page, el) {
 
     document.getElementById('page-' + page)?.classList.add('active');
 
-    const sbMap = { overview: 'admin-dash', users: 'users', communities: 'communities', moderation: 'report', 'events-mgmt': 'events', audit: 'audit', config: 'settings' };
+    const sbMap = { overview: 'admin-dash', users: 'users', communities: 'communities', moderation: 'report', 'events-mgmt': 'events', appeals: 'appeals', audit: 'audit', config: 'settings' };
     const sbId = sbMap[page];
     if (sbId) document.querySelector(`.sb-item[data-id="${sbId}"]`)?.classList.add('sb-item--active');
     if (el) el.classList.add('active');
 
-    const titles = { overview: 'System Overview', users: 'User Management', communities: 'Communities', moderation: 'Moderation', 'events-mgmt': 'Events Management', audit: 'Audit Log', config: 'Platform Configuration' };
-    const icons  = { overview: '⚡', users: '👤', communities: '🏘️', moderation: '🛡️', 'events-mgmt': '📅', audit: '📋', config: '🔧' };
+    const titles = { overview: 'System Overview', users: 'User Management', communities: 'Communities', moderation: 'Moderation', 'events-mgmt': 'Events Management', appeals: 'Appeals', audit: 'Audit Log', config: 'Platform Configuration' };
+    const icons  = { overview: '⚡', users: '👤', communities: '🏘️', moderation: '🛡️', 'events-mgmt': '📅', appeals: '⚖️', audit: '📋', config: '🔧' };
 
     document.getElementById('page-title').textContent = titles[page] || page;
     const pageIcon = document.getElementById('page-icon');
@@ -78,6 +81,7 @@ window.navTo = function (page, el) {
     if (page === 'communities')  renderCommunities();
     if (page === 'moderation')   renderReports();
     if (page === 'events-mgmt')  renderEventsAdmin();
+    if (page === 'appeals')      renderAppeals();
     if (page === 'audit')        renderAuditLog();
     if (page === 'config')       renderConfig();
 };
@@ -85,12 +89,15 @@ window.navTo = function (page, el) {
 // ── Overview ──────────────────────────────────────────────────────────────────
 function renderOverview() {
     const openReports = _reports.filter(r => r.status === 'pending').length;
-    const upcoming    = _events.filter(e => e.status === 'upcoming').length;
+    const upcoming    = _events.filter(e => e.status === 'approved').length;
+    const openAppeals = _appeals.filter(a => a.status === 'pending').length;
 
     document.getElementById('sv-users').textContent   = _users.length;
     document.getElementById('sv-comms').textContent   = _communities.length;
     document.getElementById('sv-reports').textContent = openReports;
     document.getElementById('sv-events').textContent  = upcoming;
+    const appealsEl = document.getElementById('sv-appeals');
+    if (appealsEl) appealsEl.textContent = openAppeals;
 
     const auditEl = document.getElementById('recent-audit');
     if (auditEl) auditEl.innerHTML = (_auditLog.slice(0, 4).map(item => `
@@ -177,7 +184,9 @@ window.openEditUserModal = function (userId) {
         <div class="form-group"><label class="form-label">Role</label><select class="form-input" id="m-role">
             <option value="user" ${user.role==='user'?'selected':''}>User</option>
             <option value="moderator" ${user.role==='moderator'?'selected':''}>Moderator</option>
+            <option value="community_manager" ${user.role==='community_manager'?'selected':''}>Community Manager</option>
             <option value="admin" ${user.role==='admin'?'selected':''}>Admin</option>
+            <option value="owner" ${user.role==='owner'?'selected':''}>Owner (statistics only)</option>
         </select></div>
         <div class="form-group"><label class="form-label">Bio</label><input class="form-input" id="m-bio" value="${esc(user.bio||'')}"/></div>`;
     document.getElementById('modal-confirm').textContent = 'Save Changes';
@@ -335,6 +344,57 @@ function renderEventsAdmin() {
     if (_events.length === 0) grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📅</div><div class="empty-state-text">No events</div></div>';
 }
 
+// ── Appeals ───────────────────────────────────────────────────────────────────
+function renderAppeals() {
+    const tbody = document.getElementById('appeals-tbody');
+    if (!tbody) return;
+
+    let appeals = [..._appeals];
+    if (currentAppealFilter !== 'all') appeals = appeals.filter(a => a.status === currentAppealFilter);
+    appeals.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    tbody.innerHTML = appeals.map(a => {
+        const user = _users.find(u => u.id === a.userId);
+        const submittedBy = user ? esc(user.username) : (a.userId ? `User #${a.userId}` : 'Unknown user');
+        return `
+        <tr>
+            <td><strong>#${a.id}</strong></td>
+            <td>${submittedBy}</td>
+            <td>${esc(a.text).slice(0, 80)}${a.text.length > 80 ? '…' : ''}</td>
+            <td>${esc(a.resolution || '—')}</td>
+            <td><span class="badge badge-${a.status}">${a.status}</span></td>
+            <td>${new Date(a.createdAt).toLocaleDateString()}</td>
+            <td><div class="btn-row">
+                ${a.status === 'pending' || a.status === 'reviewed' ? `
+                    <button class="act-btn act-view" onclick="adminUpdateAppeal(${a.id},'approved')">Approve</button>
+                    <button class="act-btn act-delete" onclick="adminUpdateAppeal(${a.id},'rejected')">Reject</button>
+                ` : '—'}
+            </div></td>
+        </tr>`;
+    }).join('');
+
+    if (appeals.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="empty-state-icon">⚖️</div><div class="empty-state-text">No appeals found</div></div></td></tr>';
+    }
+}
+
+window.filterAppeals = function (filter, el) {
+    currentAppealFilter = filter;
+    document.querySelectorAll('#page-appeals .filter-btn').forEach(b => b.classList.remove('on'));
+    el.classList.add('on');
+    renderAppeals();
+};
+
+window.adminUpdateAppeal = async function (appealId, status) {
+    try {
+        const updated = await window.API.appeals.updateStatus(appealId, status);
+        const idx = _appeals.findIndex(a => a.id === appealId);
+        if (idx !== -1) _appeals[idx] = { ..._appeals[idx], ...updated };
+        toast(status === 'approved' ? '✅ Appeal approved' : '🚫 Appeal rejected');
+        renderAppeals();
+    } catch (err) { toast('⚠️ ' + err.message); }
+};
+
 window.adminDeleteEvent = async function (eventId) {
     if (!confirm('Delete this event?')) return;
     try {
@@ -365,18 +425,68 @@ function renderAuditLog() {
 }
 
 function renderConfig() {
+    const automod = document.getElementById('cfg-automod');
     const registration = document.getElementById('cfg-registration');
-    const maxCapacity = document.getElementById('cfg-maxcomm');
+    const maxCommunities = document.getElementById('cfg-maxcomm');
     const maxChannels = document.getElementById('cfg-maxch');
+    if (automod) automod.checked = _platformConfig.autoModEnabled ?? true;
     if (registration) registration.checked = _platformConfig.registrationEnabled ?? true;
-    if (maxCapacity) maxCapacity.value = _platformConfig.maxEventCapacity || 500;
+    if (maxCommunities) maxCommunities.value = _platformConfig.maxCommunitiesPerUser || 10;
     if (maxChannels) maxChannels.value = _platformConfig.maxChannelsPerCommunity || 50;
+    renderPolicies();
 }
 
+// Moderation policies are plain strings with no backend concept behind them —
+// kept in this browser's localStorage rather than pretending they sync anywhere.
+const POLICIES_KEY = 'nexus_moderation_policies';
+const DEFAULT_POLICIES = ['No hate speech or harassment', 'No spam or self-promotion', 'No NSFW content'];
+
+function getPolicies() {
+    try {
+        const stored = JSON.parse(localStorage.getItem(POLICIES_KEY));
+        return Array.isArray(stored) ? stored : DEFAULT_POLICIES;
+    } catch (e) {
+        return DEFAULT_POLICIES;
+    }
+}
+
+function renderPolicies() {
+    const list = document.getElementById('policies-list');
+    if (!list) return;
+    const policies = getPolicies();
+    list.innerHTML = policies.map((p, i) => `
+        <div class="config-item">
+            <label>${esc(p)}</label>
+            <button class="act-btn act-delete" onclick="removePolicy(${i})">Remove</button>
+        </div>
+    `).join('') || '<div class="empty-state"><div class="empty-state-text">No policies yet.</div></div>';
+}
+
+window.addPolicy = function () {
+    const input = document.getElementById('new-policy');
+    const text = input?.value.trim();
+    if (!text) { toast('⚠️ Enter a policy first'); return; }
+    const policies = getPolicies();
+    policies.push(text);
+    localStorage.setItem(POLICIES_KEY, JSON.stringify(policies));
+    input.value = '';
+    renderPolicies();
+    toast('✅ Policy added on this device');
+};
+
+window.removePolicy = function (index) {
+    const policies = getPolicies();
+    policies.splice(index, 1);
+    localStorage.setItem(POLICIES_KEY, JSON.stringify(policies));
+    renderPolicies();
+};
+
 window.updateConfig = async function (key, value) {
+    // maxCommunitiesPerUser and autoModEnabled now match real backend field
+    // names directly — this map only covers the one control whose UI label
+    // doesn't match the backend's field name.
     const keyMap = {
         allowPublicRegistration: 'registrationEnabled',
-        maxCommunitiesPerUser: 'maxEventCapacity',
     };
     const backendKey = keyMap[key] || key;
     try {
@@ -483,7 +593,7 @@ function toast(msg) {
 // ── Init ──────────────────────────────────────────────────────────────────────
 function handleHash() {
     const hash = window.location.hash.substring(1);
-    const valid = ['overview','users','communities','moderation','events-mgmt','audit','config'];
+    const valid = ['overview','users','communities','moderation','events-mgmt','appeals','audit','config'];
     navTo(hash && valid.includes(hash) ? hash : 'overview');
 }
 

@@ -4,6 +4,7 @@ import {
   ArrayMaxSize,
   ArrayMinSize,
   IsArray,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -41,4 +42,53 @@ export class CreateCommunityDto {
   @IsOptional()
   @IsArray()
   channels?: Array<string | { id?: string; name: string; type?: string }>;
+
+  @ApiPropertyOptional({ example: '/uploads/1234-banner.png' })
+  @IsOptional()
+  @IsString()
+  @Length(1, 300)
+  banner?: string;
+
+  @ApiPropertyOptional({ example: '/uploads/1234-banner.png', description: 'Alias of banner kept for frontend compatibility' })
+  @IsOptional()
+  @IsString()
+  @Length(1, 300)
+  bannerImage?: string;
+
+  @ApiPropertyOptional({ enum: ['public', 'private'], example: 'public' })
+  @IsOptional()
+  @IsIn(['public', 'private'])
+  visibility?: 'public' | 'private';
+
+  @ApiPropertyOptional({ example: '⚡', description: 'Emoji or image URL shown as the community icon' })
+  @IsOptional()
+  @IsString()
+  @Length(1, 300)
+  icon?: string;
+
+  @ApiPropertyOptional({ example: 'Gaming' })
+  @IsOptional()
+  @IsString()
+  @Length(1, 40)
+  category?: string;
+
+  @ApiPropertyOptional({ example: 'moba-masters' })
+  @IsOptional()
+  @IsString()
+  @Length(1, 60)
+  slug?: string;
+
+  @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  memberCount?: number;
+
+  @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  onlineCount?: number;
 }
