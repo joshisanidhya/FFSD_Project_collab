@@ -705,7 +705,7 @@ textarea,
 }
 @media (max-width: 1024px) {
   .header-search {
-    display: none;
+    max-width: 220px;
   }
   .stats-grid,
   .event-grid,
@@ -721,6 +721,27 @@ textarea,
   }
   .main {
     width: 100%;
+  }
+  .header {
+    /* Room for the fixed hamburger toggle (sidebar.css .sb-mobile-open,
+       14px + 38px wide) so it doesn't sit on top of header content. */
+    padding: 0 14px 0 60px;
+    gap: 10px;
+  }
+  .header-search {
+    max-width: none;
+    flex: 1 1 auto;
+  }
+  .header-title {
+    font-size: 15px;
+  }
+}
+@media (max-width: 520px) {
+  .header-search span {
+    display: none;
+  }
+  .header-title {
+    display: none;
   }
 }
 .notif-dropdown {

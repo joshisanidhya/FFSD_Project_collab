@@ -861,3 +861,39 @@ textarea {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
 }
+
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE — Profile & Settings
+═══════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  .body-wrap {
+    flex-direction: column;
+    height: auto;
+    overflow-y: auto;
+  }
+  .main {
+    flex-shrink: 0;
+  }
+  .left-nav {
+    width: 100% !important;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    flex-direction: row;
+    flex-wrap: wrap;
+    overflow-x: auto;
+  }
+}
+@media (max-width: 640px) {
+  .field-row {
+    grid-template-columns: 1fr;
+  }
+  .top-bar {
+    flex-wrap: wrap;
+    height: auto;
+    /* Room for the fixed hamburger toggle, same as .header in global.css */
+    padding: 10px 14px 10px 60px;
+  }
+  .tb-right {
+    flex-wrap: wrap;
+  }
+}

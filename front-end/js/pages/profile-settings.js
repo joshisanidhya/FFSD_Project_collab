@@ -116,8 +116,59 @@ window.loadUserData = loadProfileData;
 // --- 4. FORM LOGIC ---
 let hasUnsavedChanges = false;
 
+// --- Unsaved-changes draft: autosave in-progress edits to localStorage so a
+// stray refresh/back/close doesn't silently lose them, and restore on next
+// load until the user actually Saves or Discards. Scoped per-account so two
+// users on the same browser never see each other's drafts. Password fields
+// are intentionally excluded — never persist those to localStorage.
+const DRAFT_FIELDS = ['inpFirstName', 'inpLastName', 'inpFullName', 'inpHandle', 'inpEmail', 'inpPhone', 'inpBio'];
+
+function draftKey() {
+    const user = readStoredUser();
+    return `gameunity_profile_draft_${user?.id ?? user?.username ?? 'guest'}`;
+}
+
+function saveDraft() {
+    const draft = {};
+    DRAFT_FIELDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) draft[id] = el.value;
+    });
+    try { localStorage.setItem(draftKey(), JSON.stringify(draft)); } catch (e) { /* storage full/unavailable — non-fatal */ }
+}
+
+function clearDraft() {
+    try { localStorage.removeItem(draftKey()); } catch (e) { /* ignore */ }
+}
+
+function restoreDraftIfAny() {
+    let draft;
+    try { draft = JSON.parse(localStorage.getItem(draftKey())); } catch (e) { draft = null; }
+    if (!draft) return;
+
+    DRAFT_FIELDS.forEach(id => {
+        if (draft[id] === undefined) return;
+        const el = document.getElementById(id);
+        if (el) el.value = draft[id];
+    });
+    markAsDirty();
+    if (window.toast) window.toast('📝 Restored your unsaved changes from last time.');
+}
+
+window.addEventListener('beforeunload', (e) => {
+    if (!hasUnsavedChanges) return;
+    e.preventDefault();
+    e.returnValue = '';
+});
+
+window.discardDraft = function () {
+    clearDraft();
+    location.reload();
+};
+
 window.markAsDirty = function() {
     hasUnsavedChanges = true;
+    saveDraft();
     const saveBtn = document.getElementById('btnSaveAll');
     if (saveBtn) {
         saveBtn.disabled = false;
@@ -233,6 +284,7 @@ window.saveAllChanges = async function () {
     saveBtn.disabled = true;
     saveBtn.classList.remove('pulse');
     hasUnsavedChanges = false;
+    clearDraft();
     window.toast(passwordFieldsFilled
         ? "✅ Profile updated. ⚠️ Password changes aren't supported yet."
         : "✅ Profile settings updated.");
@@ -428,6 +480,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
         loadProfileData();
         applyStoredPreferences();
+        restoreDraftIfAny();
     } catch (err) {
         console.error("Profile load failed:", err);
     } finally {
