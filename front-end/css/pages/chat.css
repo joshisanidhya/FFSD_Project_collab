@@ -2601,3 +2601,39 @@ mark.search-highlight {
     flex-direction: column;
     flex-shrink: 0
 }
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE — Chat
+   Stack the 3 columns vertically instead of clipping
+   them at a fixed viewport height; side panels become
+   capped-height scrollable strips rather than full panes.
+═══════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  .chat-layout {
+    flex-direction: column;
+    height: auto;
+    overflow-y: auto;
+  }
+  .ch-sidebar {
+    width: 100% !important;
+    max-height: 220px;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  .mem-sidebar {
+    width: 100% !important;
+    max-height: 220px;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  .messages-wrap {
+    min-height: 320px;
+  }
+}
+@media (max-width: 560px) {
+  .msg-actions {
+    flex-wrap: wrap;
+  }
+  .input-wrap {
+    flex-wrap: wrap;
+  }
+}

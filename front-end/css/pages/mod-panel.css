@@ -929,3 +929,30 @@
     transform: translateY(0);
   }
 }
+
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE — Mod Panel
+   Stack queue / detail / action columns vertically.
+═══════════════════════════════════════════════════ */
+@media (max-width: 1000px) {
+  .panel-layout {
+    flex-direction: column;
+    height: auto;
+    overflow-y: auto;
+  }
+  .queue-panel {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-height: 280px;
+    overflow-y: auto;
+  }
+  .action-panel {
+    width: 100% !important;
+    min-width: 0 !important;
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
+  .detail-panel {
+    min-height: 320px;
+  }
+}

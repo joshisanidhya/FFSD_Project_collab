@@ -271,6 +271,11 @@ body {
     flex-direction: column;
   }
 
+  .approval-header {
+    /* Room for the fixed hamburger toggle (sidebar.css .sb-mobile-open) */
+    padding-left: 46px;
+  }
+
   .approval-summary {
     grid-template-columns: 1fr;
   }
