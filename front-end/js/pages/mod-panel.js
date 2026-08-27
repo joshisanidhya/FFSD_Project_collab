@@ -1,5 +1,5 @@
 /**
- * Se7enSquare — Moderator Review Panel
+ * Gameunity — Moderator Review Panel
  * Fetches reports from GET /api/reports and updates via PATCH /api/reports/:id/status
  */
 
@@ -71,10 +71,10 @@ window.renderQueue = function (searchQuery = '') {
                     <span class="ri-name">${report.targetType} #${report.targetId}</span>
                     <span class="ri-time">Report #${report.id}</span>
                 </div>
-                <div class="ri-reason">${report.reason}</div>
+                <div class="ri-reason">${escapeHTML(report.reason)}</div>
                 <div class="ri-bottom">
                     <span class="ri-badge badge-${uiBadge}">${capitalize(uiBadge)}</span>
-                    <span class="ri-channel">${report.targetType}</span>
+                    <span class="ri-channel">${escapeHTML(report.targetType)}</span>
                 </div>
             </div>`;
     }).join('');
@@ -203,16 +203,33 @@ window.takeAction = async function (type) {
         console.warn('[ModPanel] Status update failed:', err.message);
     }
 
-    window.showToast(feedback.icon, `${feedback.msg} — #${report.id}`);
+    const movedTo = { reviewed: 'In Review', resolved: 'Resolved', escalated: 'Escalated' }[report.status] || report.status;
+    window.showToast(feedback.icon, `${feedback.msg} — #${report.id} moved to ${movedTo}`);
 
     const statusEl = document.getElementById('actionStatus');
     if (statusEl) {
-        statusEl.textContent = `${feedback.icon} ${feedback.msg}`;
+        statusEl.textContent = `${feedback.icon} ${feedback.msg} → ${movedTo}`;
         statusEl.classList.add('action-status-active');
         setTimeout(() => statusEl.classList.remove('action-status-active'), 2000);
     }
 
-    window.renderQueue();
+    const stillVisible = window.renderQueue();
+
+    // The report just left the current tab's filter (e.g. Pending → Reviewed) —
+    // the detail panel on the right was otherwise left frozen on the report
+    // that just moved, with its action buttons still live, making the move
+    // invisible. Advance to the next report in this tab, or show empty state.
+    if (!stillVisible.some((r) => r.id === report.id)) {
+        if (stillVisible.length > 0) {
+            window.selectReport(null, _reports.indexOf(stillVisible[0]));
+        } else {
+            currentReportIdx = -1;
+            const titleEl = document.getElementById('dpTitle');
+            if (titleEl) titleEl.textContent = 'No reports in this queue';
+            const actionEl = document.getElementById('dpAction');
+            if (actionEl) actionEl.textContent = '';
+        }
+    }
 };
 
 window.resolveReport = async function () {

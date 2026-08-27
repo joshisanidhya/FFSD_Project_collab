@@ -16,6 +16,7 @@ export interface UserRecord {
   password?: string;
   firstName?: string;
   lastName?: string;
+  phone?: string;
   avatar?: string | null;
 }
 
@@ -32,6 +33,9 @@ export interface CommunityRecord {
   slug?: string;
   memberCount?: number;
   onlineCount?: number;
+  banner?: string;
+  bannerImage?: string;
+  visibility?: 'public' | 'private';
 }
 
 export interface MembershipRecord {
@@ -118,11 +122,25 @@ export interface AuditLogRecord {
   createdAt: string;
 }
 
+export interface NotificationRecord {
+  id: number;
+  userId: number; // recipient
+  type: 'reaction' | 'report_status' | 'system';
+  text: string;
+  channelId?: string;
+  targetId?: number;
+  read: boolean;
+  createdAt: string;
+}
+
 export interface PlatformConfigRecord {
   registrationEnabled: boolean;
   eventApprovalRequired: boolean;
   reportEscalationEnabled: boolean;
   maxEventCapacity: number;
+  autoModEnabled: boolean;
+  maxChannelsPerCommunity: number;
+  maxCommunitiesPerUser: number;
 }
 
 const counters = {
@@ -136,6 +154,7 @@ const counters = {
   appeal: 1,
   message: 4,
   auditLog: 3,
+  notification: 1,
 };
 
 let seedDb = {
@@ -320,11 +339,15 @@ let seedDb = {
     { id: 1, action: 'System Boot', actor: 'system', target: 'backend', reason: 'Seed data loaded', createdAt: '2026-05-01T08:00:00.000Z' },
     { id: 2, action: 'Community Created', actor: 'admin01', target: 'FPS Arena', reason: 'Seed community', createdAt: '2026-05-01T08:10:00.000Z' },
   ] as AuditLogRecord[],
+  notifications: [] as NotificationRecord[],
   platformConfig: {
     registrationEnabled: true,
     eventApprovalRequired: true,
     reportEscalationEnabled: true,
     maxEventCapacity: 500,
+    autoModEnabled: true,
+    maxChannelsPerCommunity: 50,
+    maxCommunitiesPerUser: 10,
   } as PlatformConfigRecord,
 };
 

@@ -10,6 +10,9 @@ let currentStep = 1;
 const totalSteps = 4;
 let activePage = 'community';
 let toastTimeout;
+let pendingBannerUrl = null; // set once the real upload to /api/uploads resolves
+let pendingIconUrl = null;
+let selectedVisibility = 'public';
 
 // ==========================================
 // 2. CORE NAVIGATION
@@ -26,17 +29,37 @@ window.switchPage = function(el, page) {
     // Toggle Visibility
     document.getElementById('v-community').classList.toggle('on', page === 'community');
     document.getElementById('v-channel').classList.toggle('on', page === 'channel');
-    
+
     // Update Header & Buttons
     document.getElementById('bc-cur').textContent = page === 'community' ? 'Create Community' : 'Create Channel';
     document.getElementById('btn-next').textContent = page === 'channel' ? 'Create Channel' : 'Continue →';
-    
+
     // UI Cleanup
     document.getElementById('bb-step').style.display = page === 'channel' ? 'none' : 'block';
     document.getElementById('btn-back').style.display = 'none';
-    
+
     if (page === 'community') goStep(1);
+    if (page === 'channel') populateChannelCommunityPicker();
 };
+
+/** Replaces the 2 hardcoded sample communities with the real list from the API. */
+async function populateChannelCommunityPicker() {
+    const select = document.getElementById('ch-community-select');
+    if (!select || select.dataset.loaded) return;
+
+    if (!window.API?.communities) return;
+    try {
+        const communities = await window.API.communities.getAll();
+        if (communities.length > 0) {
+            select.innerHTML = communities
+                .map((c) => `<option value="${c.id}">${(c.name || 'Untitled').replace(/</g, '&lt;')}</option>`)
+                .join('');
+            select.dataset.loaded = 'true';
+        }
+    } catch (err) {
+        console.warn('[CreateCommunity] Could not load communities for channel picker:', err.message);
+    }
+}
 
 /**
  * Validates the fields of a specific step
@@ -109,36 +132,42 @@ window.isStepValid = function (stepNum) {
 };;
 
 window.triggerBannerUpload = function () {
-  // Dynamically create a file input element
   const fileInput = document.createElement("input");
   fileInput.type = "file";
-  fileInput.accept = "image/*"; // Only accept images
+  fileInput.accept = "image/*";
 
-  fileInput.onchange = function (e) {
+  fileInput.onchange = async function (e) {
     const file = e.target.files[0];
-    if (file) {
-      window.toast(`✅ Custom banner ${file.name} selected!`);
+    if (!file) return;
 
-      // Deselect the default preset banners
-      document
-        .querySelectorAll(".bp-item")
-        .forEach((b) => b.classList.remove("on"));
+    document.querySelectorAll(".bp-item").forEach((b) => b.classList.remove("on"));
 
-      // Read the file and update the Live Preview banner background
-      const reader = new FileReader();
-      reader.onload = function (event) {
-        const previewBanner = document.querySelector(".pc-banner");
-        if (previewBanner) {
-          previewBanner.style.background = `url(${event.target.result})`;
-          previewBanner.style.backgroundSize = "cover";
-          previewBanner.style.backgroundPosition = "center";
-        }
-      };
-      reader.readAsDataURL(file);
+    // Instant local preview while the real upload is in flight.
+    const reader = new FileReader();
+    reader.onload = function (event) {
+      const previewBanner = document.querySelector(".pc-banner");
+      if (previewBanner) {
+        previewBanner.style.background = `url(${event.target.result})`;
+        previewBanner.style.backgroundSize = "cover";
+        previewBanner.style.backgroundPosition = "center";
+      }
+    };
+    reader.readAsDataURL(file);
+
+    if (!window.API?.uploads) {
+      window.toast("⚠️ Upload service unavailable — banner won't be saved.");
+      return;
+    }
+    try {
+      const result = await window.API.uploads.upload(file);
+      pendingBannerUrl = result.absoluteUrl;
+      window.toast(`✅ Custom banner ${file.name} uploaded!`);
+    } catch (err) {
+      pendingBannerUrl = null;
+      window.toast(`⚠️ Banner upload failed: ${err.message}`);
     }
   };
 
-  // Programmatically click the hidden input to open the OS file browser
   fileInput.click();
 };
 
@@ -147,24 +176,33 @@ window.triggerIconUpload = function () {
   fileInput.type = "file";
   fileInput.accept = "image/*";
 
-  fileInput.onchange = function (e) {
+  fileInput.onchange = async function (e) {
     const file = e.target.files[0];
-    if (file) {
-      window.toast(`✅ Custom icon ${file.name} selected!`);
+    if (!file) return;
 
-      const reader = new FileReader();
-      reader.onload = function (event) {
-        const previewIcon = document.getElementById("pc-ico");
-        if (previewIcon) {
-          // Clear out any emoji text currently inside the preview icon
-          previewIcon.textContent = "";
-          // Apply the uploaded image as the background
-          previewIcon.style.backgroundImage = `url(${event.target.result})`;
-          previewIcon.style.backgroundSize = "cover";
-          previewIcon.style.backgroundPosition = "center";
-        }
-      };
-      reader.readAsDataURL(file);
+    const previewIcon = document.getElementById("pc-ico");
+    const reader = new FileReader();
+    reader.onload = function (event) {
+      if (previewIcon) {
+        previewIcon.textContent = "";
+        previewIcon.style.backgroundImage = `url(${event.target.result})`;
+        previewIcon.style.backgroundSize = "cover";
+        previewIcon.style.backgroundPosition = "center";
+      }
+    };
+    reader.readAsDataURL(file);
+
+    if (!window.API?.uploads) {
+      window.toast("⚠️ Upload service unavailable — icon won't be saved.");
+      return;
+    }
+    try {
+      const result = await window.API.uploads.upload(file);
+      pendingIconUrl = result.absoluteUrl;
+      window.toast(`✅ Custom icon ${file.name} uploaded!`);
+    } catch (err) {
+      pendingIconUrl = null;
+      window.toast(`⚠️ Icon upload failed: ${err.message}`);
     }
   };
 
@@ -264,7 +302,36 @@ window.nextStep = async function () {
       window.toast("⚠️ Channel name and topic are required");
       return;
     }
-    window.toast("✅ Channel created and added to community!");
+
+    const communitySelect = document.getElementById('ch-community-select');
+    const communityId = communitySelect?.value;
+    if (!communityId) {
+      window.toast("⚠️ Select a community first");
+      return;
+    }
+
+    const typeLabel = document.querySelector('.ctp.on')?.textContent.trim() || '💬 Text';
+    const channelType = typeLabel.includes('Voice') ? 'Voice'
+      : typeLabel.includes('Announcement') ? 'Announcement'
+      : typeLabel.includes('Forum') ? 'Forum'
+      : typeLabel.includes('Events') ? 'Events'
+      : 'Text';
+    const newChannel = {
+      id: String(Date.now()),
+      name: cName.value.trim().toLowerCase().replace(/\s+/g, '-'),
+      type: channelType,
+    };
+
+    try {
+      const community = await window.API.communities.getOne(communityId);
+      const existingChannels = Array.isArray(community.channels) ? community.channels : [];
+      await window.API.communities.update(communityId, { channels: [...existingChannels, newChannel] });
+      window.toast(`✅ #${newChannel.name} created in ${community.name}!`);
+      cName.value = '';
+      cTopic.value = '';
+    } catch (err) {
+      window.toast("⚠️ Could not create channel: " + err.message);
+    }
     return;
   }
 
@@ -300,6 +367,9 @@ window.nextStep = async function () {
                 slug:        communityName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
                 memberCount: 1,
                 onlineCount: 1,
+                visibility:  selectedVisibility,
+                ...(pendingBannerUrl ? { banner: pendingBannerUrl, bannerImage: pendingBannerUrl } : {}),
+                ...(pendingIconUrl ? { icon: pendingIconUrl } : {}),
             };
 
             try {
@@ -403,7 +473,7 @@ window.pickBanner = function(el) {
     }
 };
 
-window.pickPrivacy = function(el) {
+window.pickPrivacy = function(el, visibility) {
     const grid = el.closest('.role-grid');
     grid.querySelectorAll('.role-card').forEach(card => {
         card.classList.remove('on');
@@ -417,6 +487,11 @@ window.pickPrivacy = function(el) {
     selectedBadge.className = 'rc-badge';
     selectedBadge.textContent = 'Selected';
     topSection.appendChild(selectedBadge);
+
+    // Falls back to inferring from the card's own label text if no explicit
+    // value was passed in from the onclick (keeps this working either way).
+    selectedVisibility = visibility
+        || (el.textContent.toLowerCase().includes('private') ? 'private' : 'public');
 };
 
 // ==========================================

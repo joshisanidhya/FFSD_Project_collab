@@ -135,7 +135,7 @@ window.validateInput = function(el) {
     markAsDirty();
 };
 
-window.saveAllChanges = function () {
+window.saveAllChanges = async function () {
     const saveBtn = document.getElementById('btnSaveAll');
     if (!saveBtn) return;
 
@@ -175,21 +175,52 @@ window.saveAllChanges = function () {
         return;
     }
 
+    // Password changes aren't implemented yet (no backend endpoint for it) — say so
+    // honestly instead of silently discarding whatever was typed into these fields.
+    const newPwdEl = document.getElementById('inpNewPwd');
+    const curPwdEl = document.getElementById('inpCurrentPwd');
+    const passwordFieldsFilled = !!((newPwdEl && newPwdEl.value) || (curPwdEl && curPwdEl.value));
+
     saveBtn.textContent = "Saving...";
-    
+    saveBtn.disabled = true;
+
     const sessionUser = window.getCurrentUser();
+    const bioEl = document.getElementById('inpBio');
     const updatedUser = {
         ...sessionUser,
         firstName: document.getElementById('inpFirstName').value.trim(),
         lastName: document.getElementById('inpLastName').value.trim(),
         fullName: document.getElementById('inpFullName').value.trim(),
         handle: document.getElementById('inpHandle').value.trim(),
+        username: document.getElementById('inpHandle').value.trim(),
         email: document.getElementById('inpEmail').value.trim(),
         phone: document.getElementById('inpPhone').value.trim(),
+        bio: bioEl ? bioEl.value.trim() : sessionUser.bio,
         avatar: window.tempAvatarData !== undefined ? window.tempAvatarData : sessionUser.avatar
     };
     if (window.tempAvatarData === null) {
         delete updatedUser.avatar;
+    }
+
+    // Push the real fields to the backend so the change survives a session reset
+    // elsewhere (e.g. the Admin > Users list), not just this browser's localStorage.
+    if (sessionUser?.id && window.API?.users) {
+        try {
+            await window.API.users.update(sessionUser.id, {
+                username: updatedUser.username,
+                email: updatedUser.email,
+                phone: updatedUser.phone,
+                bio: updatedUser.bio,
+                firstName: updatedUser.firstName,
+                lastName: updatedUser.lastName,
+                avatar: updatedUser.avatar,
+            });
+        } catch (err) {
+            console.warn('[ProfileSettings] Backend update failed, kept local copy only:', err.message);
+            window.toast("⚠️ Saved locally — couldn't reach the server.");
+        }
+    } else {
+        console.warn('[ProfileSettings] No user id on session — saving locally only.');
     }
 
     if (typeof persistCurrentUser === "function") persistCurrentUser(updatedUser);
@@ -198,15 +229,15 @@ window.saveAllChanges = function () {
         localStorage.setItem('currentUser', JSON.stringify(updatedUser));
     }
 
-    setTimeout(() => {
-        saveBtn.textContent = "Save Changes";
-        saveBtn.disabled = true;
-        saveBtn.classList.remove('pulse');
-        hasUnsavedChanges = false;
-        window.toast("✅ Profile settings updated.");
-        loadProfileData();
-        if (window.SidebarComponent) window.SidebarComponent.init();
-    }, 800);
+    saveBtn.textContent = "Save Changes";
+    saveBtn.disabled = true;
+    saveBtn.classList.remove('pulse');
+    hasUnsavedChanges = false;
+    window.toast(passwordFieldsFilled
+        ? "✅ Profile updated. ⚠️ Password changes aren't supported yet."
+        : "✅ Profile settings updated.");
+    loadProfileData();
+    if (window.SidebarComponent) window.SidebarComponent.init();
 };
 
 // --- 5. MODALS & STATUS ---
@@ -224,8 +255,6 @@ window.openPhotoModal = function(e) {
     }
     fileInput.click();
 };
-
-window.closePhotoModal = function() {}; // No longer needed but kept to avoid breaking HTML references
 
 window.handleFileSelect = async function(e) {
     const file = e.target.files[0];
@@ -259,7 +288,6 @@ window.handleFileSelect = async function(e) {
     }
 };
 
-window.applyUploadedPhoto = function() {}; // No longer needed
 
 window.removePhoto = function() {
     window.tempAvatarData = null;
@@ -284,25 +312,103 @@ window.removePhoto = function() {
     markAsDirty();
 };
 
+// Local-only preference storage. There's no backend concept for any of these
+// (status/theme/privacy/accessibility aren't part of UserRecord), so "saving"
+// here means "survives a refresh on this browser" — not synced to the account.
+const LOCAL_PREFS_KEY = 'nexus_local_prefs';
+
+function readLocalPrefs() {
+    try { return JSON.parse(localStorage.getItem(LOCAL_PREFS_KEY) || '{}'); }
+    catch (e) { return {}; }
+}
+
+function writeLocalPrefs(patch) {
+    const prefs = { ...readLocalPrefs(), ...patch };
+    localStorage.setItem(LOCAL_PREFS_KEY, JSON.stringify(prefs));
+    return prefs;
+}
+
 window.setStatus = function(el) {
     document.querySelectorAll('.status-badge').forEach(b => b.classList.remove('on'));
     el.classList.add('on');
+    writeLocalPrefs({ status: el.textContent.trim() });
     window.toast(`Status set to: ${el.textContent.trim()}`);
 };
 
 window.setTheme = function(el) {
     document.querySelectorAll('.theme-opt').forEach(t => t.classList.remove('on'));
     el.classList.add('on');
+    const themeId = el.querySelector('.theme-label')?.textContent.includes('Midnight')
+        ? 'midnight-green'
+        : 'default';
+    document.documentElement.dataset.theme = themeId === 'default' ? '' : themeId;
+    writeLocalPrefs({ theme: themeId });
     window.toast("🎨 Theme updated.");
 };
 
 window.updatePrivacySettings = function() {
-    window.toast("🔒 Privacy settings saved.");
+    writeLocalPrefs({
+        profileVisibility: document.getElementById('selProfileVis')?.value,
+        allowMessagesFrom: document.getElementById('selMessages')?.value,
+        showEmail: document.getElementById('togEmail')?.classList.contains('on'),
+        showPhone: document.getElementById('togPhone')?.classList.contains('on'),
+        showActivity: document.getElementById('togActivity')?.classList.contains('on'),
+        searchVisible: document.getElementById('togSearch')?.classList.contains('on'),
+    });
+    window.toast("🔒 Privacy settings saved on this device.");
 };
 
 window.updateAccessibility = function() {
-    window.toast("♿ Accessibility settings updated.");
+    const contrast = document.getElementById('togContrast')?.classList.contains('on');
+    const motion = document.getElementById('togMotion')?.classList.contains('on');
+    const fontSize = document.getElementById('selFontSize')?.value || 'medium';
+    document.documentElement.classList.toggle('a11y-high-contrast', !!contrast);
+    document.documentElement.classList.toggle('a11y-reduced-motion', !!motion);
+    document.documentElement.dataset.fontSize = fontSize;
+    writeLocalPrefs({
+        fontSize,
+        highContrast: contrast,
+        reducedMotion: motion,
+        screenReader: document.getElementById('togScreenReader')?.classList.contains('on'),
+        keyboardNav: document.getElementById('togKeyboard')?.classList.contains('on'),
+    });
+    window.toast("♿ Accessibility settings updated on this device.");
 };
+
+/** Re-apply whatever was saved last time, so a refresh doesn't reset the UI. */
+function applyStoredPreferences() {
+    const prefs = readLocalPrefs();
+
+    if (prefs.theme && prefs.theme !== 'default') {
+        document.documentElement.dataset.theme = prefs.theme;
+        document.querySelectorAll('.theme-opt').forEach(t => t.classList.remove('on'));
+        document.querySelectorAll('.theme-label').forEach(label => {
+            if (label.textContent.includes('Midnight')) label.closest('.theme-opt')?.classList.add('on');
+        });
+    }
+
+    document.documentElement.classList.toggle('a11y-high-contrast', !!prefs.highContrast);
+    document.documentElement.classList.toggle('a11y-reduced-motion', !!prefs.reducedMotion);
+    if (prefs.fontSize) {
+        document.documentElement.dataset.fontSize = prefs.fontSize;
+        const el = document.getElementById('selFontSize'); if (el) el.value = prefs.fontSize;
+    }
+    if (prefs.profileVisibility) { const el = document.getElementById('selProfileVis'); if (el) el.value = prefs.profileVisibility; }
+    if (prefs.allowMessagesFrom) { const el = document.getElementById('selMessages'); if (el) el.value = prefs.allowMessagesFrom; }
+    [
+        ['togEmail', 'showEmail'], ['togPhone', 'showPhone'], ['togActivity', 'showActivity'],
+        ['togSearch', 'searchVisible'], ['togContrast', 'highContrast'], ['togMotion', 'reducedMotion'],
+        ['togScreenReader', 'screenReader'], ['togKeyboard', 'keyboardNav'],
+    ].forEach(([elId, prefKey]) => {
+        if (!(prefKey in prefs)) return;
+        document.getElementById(elId)?.classList.toggle('on', !!prefs[prefKey]);
+    });
+    if (prefs.status) {
+        document.querySelectorAll('.status-badge').forEach(b => {
+            b.classList.toggle('on', b.textContent.trim() === prefs.status);
+        });
+    }
+}
 
 // --- 6. INITIALIZATION ---
 document.addEventListener("DOMContentLoaded", () => {
@@ -321,6 +427,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
         loadProfileData();
+        applyStoredPreferences();
     } catch (err) {
         console.error("Profile load failed:", err);
     } finally {

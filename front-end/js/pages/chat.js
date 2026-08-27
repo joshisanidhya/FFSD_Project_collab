@@ -62,6 +62,149 @@ let replyingTo = null;
 let collapsedCategories = new Set();
 let attachedFile = null; // Store attached file
 let activeChannelName = "general";
+let currentCommunityId = null;
+let currentChannelMessages = []; // last set loaded for the active channel, from the real API
+
+function getChatUser() {
+  return typeof getCurrentUser === "function" ? getCurrentUser() : null;
+}
+
+function formatMsgTime(iso) {
+  try {
+    return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  } catch (e) {
+    return "";
+  }
+}
+
+function renderAttachment(url) {
+  const isImage = /\.(png|jpe?g|gif|webp)$/i.test(url);
+  const name = url.split("/").pop();
+  if (isImage) {
+    return `
+      <div class="msg-attachment msg-attachment-image" onclick="openAttachmentViewer(this)">
+        <div class="msg-attach-preview" style="background-image:url('${escapeAttr(url)}');background-size:cover;background-position:center;"></div>
+        <div class="msg-attach-overlay"><span class="msg-attach-view-icon">🔍</span></div>
+        <div class="msg-attach-info"><div class="msg-attach-name">${escapeAttr(name)}</div></div>
+      </div>`;
+  }
+  return `
+    <a class="msg-attachment msg-attachment-file" href="${escapeAttr(url)}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit;">
+      <span class="msg-attach-icon">📎</span>
+      <div class="msg-attach-info"><div class="msg-attach-name">${escapeAttr(name)}</div></div>
+      <span class="msg-attach-download">⬇</span>
+    </a>`;
+}
+
+/** Renders one backend ChatMessageRecord as a message-group element. */
+function renderMessage(msg) {
+  const user = getChatUser();
+  const isMine = user?.id && String(msg.authorId) === String(user.id);
+  const initials = (msg.authorName || "U").slice(0, 2).toUpperCase();
+
+  const reactionsHtml = Object.entries(msg.reactions || {})
+    .filter(([, count]) => count > 0)
+    .map(([emoji, count]) => `
+      <div class="reaction-pill" onclick="handleReactionClick(this, '${emoji}')"><span>${emoji}</span><span class="reaction-count">${count}</span></div>
+    `).join("");
+
+  const attachmentsHtml = (msg.attachments || []).map(renderAttachment).join("");
+
+  return `
+    <div class="msg-group" data-message-id="${msg.id}" style="animation: fadeUp 0.25s ease forwards">
+      <div class="msg-av ${isMine ? "grad-violet" : "grad-pink"}">${escapeAttr(initials)}</div>
+      <div class="msg-body">
+        <div class="msg-header">
+          <span class="msg-uname" style="color:${isMine ? "var(--accent-light,#818cf8)" : "#F472B6"}">${escapeAttr(msg.authorName || "User")}</span>
+          ${isMine ? '<span class="msg-role" style="background:rgba(91,110,245,0.1);color:var(--accent);font-size:9px;padding:1px 6px;border-radius:10px;">You</span>' : ""}
+          <span class="msg-time">${formatMsgTime(msg.createdAt)}</span>
+        </div>
+        ${msg.content ? `<div class="msg-text${isMine ? " self-msg" : ""}">${parseMarkdown(msg.content)}</div>` : ""}
+        ${attachmentsHtml}
+        ${reactionsHtml ? `<div class="reactions">${reactionsHtml}</div>` : ""}
+      </div>
+      <div class="msg-actions">
+        <div class="act-btn" title="Add Reaction" onclick="openEmojiPicker(this, event)">😊</div>
+        <div class="act-btn" title="Reply" onclick="replyToMessage(this)">↩</div>
+        <div class="act-btn" title="More" onclick="showMessageMenu(this, event)">⋯</div>
+      </div>
+    </div>`;
+}
+
+/** Loads real messages for a channel from the backend and renders them. */
+async function loadAndRenderMessages(channelId) {
+  const wrap = document.getElementById("messagesWrap");
+  const emptyState = document.getElementById("chatEmptyState");
+  if (!wrap) return;
+
+  try {
+    currentChannelMessages = await window.API.messages.getByChannel(channelId);
+  } catch (err) {
+    console.warn("[Chat] Could not load messages for", channelId, err.message);
+    currentChannelMessages = [];
+  }
+
+  wrap.innerHTML = "";
+  if (emptyState) wrap.appendChild(emptyState);
+
+  if (currentChannelMessages.length === 0) {
+    if (emptyState) emptyState.style.display = "";
+  } else {
+    if (emptyState) emptyState.style.display = "none";
+    currentChannelMessages.forEach((msg) => {
+      wrap.insertAdjacentHTML("beforeend", renderMessage(msg));
+    });
+  }
+
+  renderPinnedPanel();
+  scrollToBottom();
+}
+
+function renderPinnedPanel() {
+  const list = document.getElementById("pinnedList");
+  const emptyEl = document.getElementById("pinnedEmpty");
+  if (!list) return;
+  const pinned = currentChannelMessages.filter((m) => m.pinned);
+  if (emptyEl) emptyEl.style.display = pinned.length ? "none" : "";
+  list.innerHTML = pinned.map((m) => `
+    <div class="pinned-item">
+      <div class="pinned-item-meta">
+        <span class="pinned-item-author">${escapeAttr(m.authorName)}</span>
+        <span class="pinned-item-time">${formatMsgTime(m.createdAt)}</span>
+      </div>
+      <div class="pinned-item-text">${escapeAttr(m.content)}</div>
+    </div>
+  `).join("");
+}
+
+/** Reaction click from either the emoji picker or an existing reaction pill. */
+window.handleReactionClick = async function (el, emoji) {
+  const messageId = el.closest("[data-message-id]")?.dataset.messageId;
+  if (!messageId) return;
+  await sendReaction(messageId, emoji);
+};
+
+async function sendReaction(messageId, emoji) {
+  const user = getChatUser();
+  try {
+    await window.API.messages.react(messageId, emoji, { id: user?.id, name: user?.username || user?.name });
+  } catch (err) {
+    if (window.toast) window.toast("⚠️ Could not react: " + err.message);
+    return;
+  }
+  await loadAndRenderMessages(activeChannelName);
+}
+
+window.pinMessage = async function (messageId) {
+  try {
+    await window.API.messages.pin(messageId);
+  } catch (err) {
+    if (window.toast) window.toast("⚠️ Could not pin message: " + err.message);
+    return;
+  }
+  await loadAndRenderMessages(activeChannelName);
+  showToast("📌 Message pin updated");
+};
 
 function escapeAttr(value) {
   return String(value || "")
@@ -239,25 +382,8 @@ window.togglePinnedPanel = function () {
   if (btn) btn.classList.toggle("active", isOpen);
 };
 
-window.addToPinned = function (text, author) {
-  const list = document.getElementById("pinnedList");
-  const emptyEl = document.getElementById("pinnedEmpty");
-  if (!list) return;
-
-  if (emptyEl) emptyEl.style.display = "none";
-
-  const item = document.createElement("div");
-  item.className = "pinned-item";
-  item.innerHTML = `
-        <div class="pinned-item-meta">
-            <span class="pinned-item-author">${author}</span>
-            <span class="pinned-item-time">${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-        </div>
-        <div class="pinned-item-text">${text}</div>
-    `;
-  list.appendChild(item);
-  showToast("Message pinned!");
-};
+// Pin/unpin now goes through window.pinMessage() (real /messages/:id/pin call),
+// with the pinned panel re-rendered from real data by renderPinnedPanel().
 
 // ==========================================
 // 5. CHANNEL SIDEBAR — SEARCH & COLLAPSE
@@ -346,6 +472,8 @@ window.setChannel = function (el, name, type) {
 
   const badge = el.querySelector(".ch-unread");
   if (badge) badge.remove();
+
+  loadAndRenderMessages(activeChannelName);
 };
 
 // ==========================================
@@ -425,12 +553,13 @@ window.openEmojiPicker = function (btn, event) {
   currentEmojiTarget = btn;
   ensureEmojiGridBuilt();
 
-  // Wire up: clicking an emoji adds a reaction to the parent message
+  // Wire up: clicking an emoji sends a real reaction for the parent message
   rewireEmojiGrid((emoji) => {
     const msgRow = currentEmojiTarget
       ? currentEmojiTarget.closest(".msg-group, .msg-cont")
       : null;
-    if (msgRow) addReaction(msgRow, emoji);
+    const messageId = msgRow?.dataset.messageId;
+    if (messageId) sendReaction(messageId, emoji);
     picker.classList.remove("open");
     currentEmojiTarget = null;
   });
@@ -514,12 +643,10 @@ window.showMessageMenu = function (btn, event) {
 
   const msgGroup = btn.closest(".msg-group, .msg-cont");
   let msgText = "";
-  let userName = "User";
+  const messageId = msgGroup?.dataset.messageId;
   if (msgGroup) {
     const textEl = msgGroup.querySelector(".msg-text");
     if (textEl) msgText = textEl.textContent.trim();
-    const nameEl = msgGroup.querySelector(".msg-uname");
-    if (nameEl) userName = nameEl.textContent.trim();
   }
 
   const menu = document.createElement("div");
@@ -536,20 +663,22 @@ window.showMessageMenu = function (btn, event) {
           .catch(() => showToast("Copy failed"));
       },
     },
-    {
+    ...(messageId ? [{
       icon: "📌",
       label: "Pin Message",
       action: () => {
-        addToPinned(msgText, userName);
+        pinMessage(messageId);
       },
-    },
+    }] : []),
     { separator: true },
     {
       icon: "🚩",
       label: "Report Message",
       danger: true,
       action: () => {
-        window.location.href = "report.html";
+        window.location.href = messageId
+          ? `report.html?targetType=post&targetId=${encodeURIComponent(messageId)}&channelId=${encodeURIComponent(activeChannelName)}`
+          : "report.html";
       },
     },
   ];
@@ -616,61 +745,11 @@ document.addEventListener("click", function (e) {
 // ==========================================
 // 10. REACTIONS
 // ==========================================
-function addReaction(msgGroup, emoji) {
-  if (!msgGroup) return;
-
-  let reactionsContainer = msgGroup.querySelector(".reactions");
-  if (!reactionsContainer) {
-    reactionsContainer = document.createElement("div");
-    reactionsContainer.className = "reactions";
-    const msgBody = msgGroup.querySelector(".msg-body") || msgGroup;
-    msgBody.appendChild(reactionsContainer);
-  }
-
-  let existingPill = Array.from(
-    reactionsContainer.querySelectorAll(".reaction-pill"),
-  ).find((pill) => pill.querySelector("span")?.textContent === emoji);
-
-  if (existingPill) {
-    if (existingPill.classList.contains("mine")) {
-      // Already reacted — remove reaction
-      const countSpan = existingPill.querySelector(".reaction-count");
-      const newCount = parseInt(countSpan.textContent) - 1;
-      if (newCount <= 0) {
-        existingPill.remove();
-      } else {
-        countSpan.textContent = newCount;
-        existingPill.classList.remove("mine");
-      }
-    } else {
-      const countSpan = existingPill.querySelector(".reaction-count");
-      countSpan.textContent = parseInt(countSpan.textContent) + 1;
-      existingPill.classList.add("mine");
-    }
-  } else {
-    const pill = document.createElement("div");
-    pill.className = "reaction-pill mine";
-    pill.onclick = function () {
-      window.toggleReaction(this);
-    };
-    pill.innerHTML = `<span>${emoji}</span><span class="reaction-count">1</span>`;
-    reactionsContainer.appendChild(pill);
-  }
-}
-
-window.toggleReaction = function (pill) {
-  const countEl = pill.querySelector(".reaction-count");
-  let count = parseInt(countEl.textContent);
-  if (pill.classList.contains("mine")) {
-    // Un-react
-    countEl.textContent = count - 1;
-    pill.classList.remove("mine");
-    if (count - 1 <= 0) pill.remove();
-  } else {
-    countEl.textContent = count + 1;
-    pill.classList.add("mine");
-  }
-};
+// Real reactions go through window.handleReactionClick() / sendReaction() near
+// the top of this file, which call POST /messages/:id/reactions and re-render
+// from the server's response. The backend only supports incrementing a count
+// per emoji (no per-user un-react), so there's no "toggle off" here — clicking
+// an emoji always adds one, matching what the API actually does.
 
 // ==========================================
 // 11. MENTION & TOOLBAR FORMATTING
@@ -817,11 +896,8 @@ window.openAttachmentViewer = function (element) {
   document.body.appendChild(modal);
 };
 
-window.downloadAttachment = function (fileName) {
-  showToast(`⬇ Downloading: ${fileName}`);
-  // In a real app, this would trigger a download
-  // For now, just show the toast
-};
+// Non-image attachments now render as real <a href download> links (see
+// renderAttachment()) so there's no separate fake download handler anymore.
 
 function getFileIcon(mimeType) {
   if (!mimeType) return "📄";
@@ -835,9 +911,6 @@ function getFileIcon(mimeType) {
   if (mimeType.includes("document") || mimeType.includes("word")) return "📄";
   return "📎";
 }
-
-// Store file reference globally for viewer (in a real app, would use proper data structure)
-let attachmentStore = {};
 
 function insertAtCursor(text) {
   const ta = document.getElementById("msgInput");
@@ -970,167 +1043,65 @@ window.sendMessage = async function () {
   const input = document.getElementById("msgInput");
   const text = input.value.trim();
   if (!text && !attachedFile) return;
-  const outgoingFileName = attachedFile ? attachedFile.name : null;
 
-  const wrap = document.getElementById("messagesWrap");
-  const time = new Date().toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const sendBtn = document.querySelector(".send-btn");
+  if (sendBtn) sendBtn.disabled = true;
 
-  let replyBadge = "";
-  if (replyingTo) {
-    replyBadge = `<div class="msg-reply-indicator">↩ Replying to <strong>${replyingTo}</strong></div>`;
-    cancelReply();
-  }
-
-  const msgEl = document.createElement("div");
-  msgEl.className = "msg-group";
-  msgEl.style.animation = "fadeUp 0.25s ease forwards";
-
-  // Build attachment HTML if file is attached
-  let attachmentHtml = "";
+  // Real upload first, if there's a file — the message row only gets created
+  // once we have a real URL to attach, so a failed upload doesn't send a
+  // message silently missing its attachment.
+  let attachmentUrls = [];
   if (attachedFile) {
-    const icon = getFileIcon(attachedFile.type);
-    const size = (attachedFile.size / 1024).toFixed(1);
-    const isImage = attachedFile.type.startsWith("image");
-    const fileId = "attach_" + Date.now();
-
-    // For images, create a preview instead of just a file card
-    if (isImage) {
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        const imgPreview = document.querySelector(
-          `#${fileId} .msg-attach-preview`,
-        );
-        if (imgPreview) {
-          imgPreview.style.backgroundImage = `url(${e.target.result})`;
-          imgPreview.style.backgroundSize = "cover";
-          imgPreview.style.backgroundPosition = "center";
-        }
-      };
-      reader.readAsDataURL(attachedFile);
-
-      attachmentHtml = `
-        <div id="${fileId}" class="msg-attachment msg-attachment-image" onclick="openAttachmentViewer(this)">
-          <div class="msg-attach-preview"></div>
-          <div class="msg-attach-overlay">
-            <span class="msg-attach-view-icon">🔍</span>
-          </div>
-          <div class="msg-attach-info">
-            <div class="msg-attach-name">${attachedFile.name}</div>
-            <div class="msg-attach-size">${size} KB</div>
-          </div>
-        </div>
-      `;
-    } else {
-      // For non-image files, show file card with download option
-      attachmentHtml = `
-        <div id="${fileId}" class="msg-attachment msg-attachment-file" onclick="downloadAttachment('${attachedFile.name}')">
-          <span class="msg-attach-icon">${icon}</span>
-          <div class="msg-attach-info">
-            <div class="msg-attach-name">${attachedFile.name}</div>
-            <div class="msg-attach-size">${size} KB</div>
-          </div>
-          <span class="msg-attach-download">⬇</span>
-        </div>
-      `;
+    if (!window.API?.uploads) {
+      showToast("⚠️ Upload service unavailable");
+      if (sendBtn) sendBtn.disabled = false;
+      return;
+    }
+    try {
+      const result = await window.API.uploads.upload(attachedFile);
+      attachmentUrls = [result.absoluteUrl];
+    } catch (err) {
+      showToast("⚠️ Attachment upload failed: " + err.message);
+      if (sendBtn) sendBtn.disabled = false;
+      return;
     }
   }
 
-  msgEl.innerHTML = `
-        <div class="msg-av grad-violet">AM</div>
-        <div class="msg-body">
-            ${replyBadge}
-            <div class="msg-header">
-                <span class="msg-uname" style="color:var(--accent-light,#818cf8)">Alex Morgan</span>
-                <span class="msg-role" style="background:rgba(91,110,245,0.1);color:var(--accent);font-size:9px;padding:1px 6px;border-radius:10px;">You</span>
-                <span class="msg-time">${time}</span>
-            </div>
-            ${text ? `<div class="msg-text self-msg">${parseMarkdown(text)}</div>` : ""}
-            ${attachmentHtml}
-        </div>
-        <div class="msg-actions">
-            <div class="act-btn" title="Add Reaction" onclick="openEmojiPicker(this, event)">😊</div>
-            <div class="act-btn" title="Reply" onclick="replyToMessage(this)">↩</div>
-            <div class="act-btn" title="More" onclick="showMessageMenu(this, event)">⋯</div>
-        </div>
-    `;
+  const user = getChatUser();
+  try {
+    await window.API.messages.create({
+      channelId: activeChannelName,
+      communityId: currentCommunityId || undefined,
+      authorId: user?.id,
+      authorName: user?.username || user?.name || "User",
+      content: text,
+      attachments: attachmentUrls,
+    });
+  } catch (err) {
+    showToast("⚠️ Message failed to send: " + err.message);
+    if (sendBtn) sendBtn.disabled = false;
+    return;
+  }
 
-  wrap.appendChild(msgEl);
-
+  if (replyingTo) cancelReply();
   input.value = "";
   input.style.height = "auto";
-
-  // Clear attachment
   attachedFile = null;
   const preview = document.getElementById("attachmentPreview");
   if (preview) preview.remove();
   const fileInput = document.getElementById("fileInput");
   if (fileInput) fileInput.value = "";
+  if (sendBtn) sendBtn.disabled = false;
 
-  scrollToBottom();
-
-  // Save message to localStorage only (avoids backend db.json write which triggers Live Server reload)
-  try {
-    const currentUser = typeof getCurrentUser === "function" ? getCurrentUser() : null;
-    const stored = JSON.parse(localStorage.getItem("nexus_messages") || "[]");
-    stored.push({
-      id: Date.now(),
-      channelId: activeChannelName,
-      communityId: Number(new URLSearchParams(window.location.search).get("community")) || undefined,
-      authorName: currentUser?.username || currentUser?.name || "You",
-      content: text,
-      attachments: outgoingFileName ? [outgoingFileName] : [],
-      createdAt: new Date().toISOString()
-    });
-    localStorage.setItem("nexus_messages", JSON.stringify(stored));
-  } catch (err) {
-    console.warn("[Chat] Could not save message to localStorage:", err.message);
-  }
-
-  simulateResponse();
+  await loadAndRenderMessages(activeChannelName);
 };
-
-function simulateResponse() {
-  setTimeout(() => {
-    const wrap = document.getElementById("messagesWrap");
-    const time = new Date().toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-
-    const replyEl = document.createElement("div");
-    replyEl.className = "msg-group";
-    replyEl.style.animation = "fadeUp 0.25s ease forwards";
-    replyEl.innerHTML = `
-            <div class="msg-av grad-pink">MP</div>
-            <div class="msg-body">
-                <div class="msg-header">
-                    <span class="msg-uname" style="color:#F472B6">Mia Park</span>
-                    <span class="msg-time">${time}</span>
-                </div>
-                <div class="msg-text">Got it! We'll be using the <strong>Nexus Design System</strong> to keep things consistent. Can't wait for tomorrow! 🚀</div>
-                <div class="reactions">
-                    <div class="reaction-pill" onclick="toggleReaction(this)"><span>🔥</span><span class="reaction-count">1</span></div>
-                </div>
-            </div>
-            <div class="msg-actions">
-                <div class="act-btn" title="Add Reaction" onclick="openEmojiPicker(this, event)">😊</div>
-                <div class="act-btn" title="Reply" onclick="replyToMessage(this)">↩</div>
-                <div class="act-btn" title="More" onclick="showMessageMenu(this, event)">⋯</div>
-            </div>
-        `;
-
-    wrap.appendChild(replyEl);
-    scrollToBottom();
-  }, 1500);
-}
 
 // ==========================================
 // 14. INITIALIZATION
 // ==========================================
 document.addEventListener("DOMContentLoaded", async () => {
+  if (typeof enforcePageAccess === "function" && !enforcePageAccess()) return;
+
   // Fetch community details to render channels
   const urlParams = new URLSearchParams(window.location.search);
   const commId = urlParams.get("community") || sessionStorage.getItem("currentCommunityId") || urlParams.get("id");
@@ -1140,6 +1111,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (commId && window.API && window.API.communities) {
     try {
       community = await window.API.communities.getOne(commId);
+      currentCommunityId = community?.id ?? null;
     } catch (err) {
       console.error("Failed to load community details for chat", err);
     }

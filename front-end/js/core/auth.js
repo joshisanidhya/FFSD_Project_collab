@@ -1,5 +1,5 @@
 /**
- * Se7enSquare - Authentication & RBAC Logic
+ * Gameunity - Authentication & RBAC Logic
  * Centralizes session persistence, role normalization, and client-side access checks.
  */
 
@@ -7,28 +7,31 @@ const ROLES = {
     USER: "user",
     MODERATOR: "moderator",
     COMMUNITY_MANAGER: "community_manager",
-    ADMIN: "admin"
+    ADMIN: "admin",
+    OWNER: "owner" // platform owner — read-only access to statistics/health only
 };
 
 const ROLE_HIERARCHY = [
     ROLES.USER,
     ROLES.MODERATOR,
     ROLES.COMMUNITY_MANAGER,
-    ROLES.ADMIN
+    ROLES.ADMIN,
+    ROLES.OWNER
 ];
 
 const ROLE_LEVELS = {
     [ROLES.USER]: 1,
     [ROLES.MODERATOR]: 2,
     [ROLES.COMMUNITY_MANAGER]: 3,
-    [ROLES.ADMIN]: 4
+    [ROLES.ADMIN]: 4,
+    [ROLES.OWNER]: 5
 };
 
 const PAGE_ACCESS = {
     'dashboard.html':         [ROLES.USER, ROLES.MODERATOR, ROLES.COMMUNITY_MANAGER, ROLES.ADMIN],
     'discovery.html':         [ROLES.USER, ROLES.MODERATOR, ROLES.COMMUNITY_MANAGER, ROLES.ADMIN],
     'events.html':            [ROLES.USER, ROLES.MODERATOR, ROLES.COMMUNITY_MANAGER, ROLES.ADMIN],
-    'profile-settings.html':  [ROLES.USER, ROLES.MODERATOR, ROLES.COMMUNITY_MANAGER, ROLES.ADMIN],
+    'profile-settings.html':  [ROLES.USER, ROLES.MODERATOR, ROLES.COMMUNITY_MANAGER, ROLES.ADMIN, ROLES.OWNER],
     'community-page.html':    [ROLES.USER, ROLES.MODERATOR, ROLES.COMMUNITY_MANAGER, ROLES.ADMIN],
     'create-community.html':  [ROLES.USER, ROLES.MODERATOR, ROLES.COMMUNITY_MANAGER, ROLES.ADMIN],
     'report.html':            [ROLES.USER, ROLES.MODERATOR, ROLES.COMMUNITY_MANAGER, ROLES.ADMIN],
@@ -37,7 +40,8 @@ const PAGE_ACCESS = {
     'event-approval.html':    [ROLES.COMMUNITY_MANAGER, ROLES.ADMIN],
     'mod-panel.html':         [ROLES.MODERATOR, ROLES.ADMIN],
     'admin-dashboard.html':   [ROLES.ADMIN],
-    // chat.html intentionally excluded — feature removed platform-wide
+    'chat.html':              [ROLES.USER, ROLES.MODERATOR, ROLES.COMMUNITY_MANAGER, ROLES.ADMIN],
+    'owner-dashboard.html':   [ROLES.OWNER, ROLES.ADMIN],
 };
 
 function normalizeRole(role) {
@@ -169,6 +173,20 @@ function logoutUser() {
     setTimeout(() => {
         window.location.href = 'landing.html';
     }, 500);
+}
+
+/**
+ * Real, callable enforcement of the PAGE_ACCESS map — call this from a page's
+ * own init code (see chat.js) to gate on whatever PAGE_ACCESS says for the
+ * current page. Pages with their own bespoke access logic (e.g.
+ * community-settings.js's owner-exception) intentionally don't call this —
+ * retrofitting it there would fight logic that's already correct.
+ */
+function enforcePageAccess() {
+    const page = window.location.pathname.split('/').pop();
+    const allowedRoles = PAGE_ACCESS[page];
+    if (!allowedRoles) return true; // no entry for this page — nothing to enforce here
+    return requireRole(allowedRoles);
 }
 
 function requireRole(allowedRoles) {
@@ -323,6 +341,7 @@ window.loginUser = loginUser;
 window.getCurrentUser = getCurrentUser;
 window.logoutUser = logoutUser;
 window.requireRole = requireRole;
+window.enforcePageAccess = enforcePageAccess;
 window.hasPermission = hasPermission;
 window.hasAccess = hasAccess;
 window.hasMinimumRole = hasMinimumRole;

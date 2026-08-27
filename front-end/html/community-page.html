@@ -464,7 +464,7 @@
                 Use the report button on any message or contact a moderator
                 directly.
               </div>
-              <button class="report-btn" onclick="window.location.href = 'report.html'">
+              <button class="report-btn" onclick="reportThisCommunity()">
                 🚩 Report an Issue
               </button>
             </div>
@@ -473,58 +473,7 @@
       </div>
     </div>
     <script src="../js/core/auth.js"></script>
-    <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        if (window.renderUserUI) window.renderUserUI();
-
-        // Show/hide Manage & Delete buttons based on ownership and admin role
-        const userObj = window.getCurrentUser ? window.getCurrentUser() : null;
-        const manageBtn = document.getElementById("rbacManageBtn");
-        const deleteBtn = document.getElementById("rbacDeleteBtn");
-
-        if (userObj) {
-          const params = new URLSearchParams(window.location.search);
-          const communityId = params.get("id") || params.get("name") || "pro-gamers";
-          const communityName = params.get("name") || communityId;
-          const isOwner = window.isOwnerOfCommunity
-            ? window.isOwnerOfCommunity(communityName)
-            : false;
-          const isAdmin = userObj.role === "admin";
-
-          if (manageBtn && (isOwner || isAdmin)) {
-            manageBtn.classList.remove("hidden");
-            manageBtn.href = `community-settings.html?id=${encodeURIComponent(communityId)}`;
-          }
-          if (deleteBtn && (isOwner || isAdmin)) {
-            deleteBtn.classList.remove("hidden");
-          }
-        }
-      });
-
-      function requestDeleteCommunity() {
-        const conf = confirm(
-          "Are you sure you want to permanently delete this community? This action cannot be undone.",
-        );
-        if (conf) {
-          const params = new URLSearchParams(window.location.search);
-          const communityName = params.get("id") || params.get("name") || "pro-gamers";
-
-          // C4 FIX: auth.js stores owned communities as an ARRAY, not an object
-          let owned = JSON.parse(
-            localStorage.getItem("nexus_owned_communities") || "[]",
-          );
-          owned = owned.filter(c => c !== communityName);
-          localStorage.setItem(
-            "nexus_owned_communities",
-            JSON.stringify(owned),
-          );
-
-          alert("Community has been successfully deleted.");
-          window.location.href = "dashboard.html";
-        }
-      }
-    </script>
-
+    <script src="../js/core/utils.js"></script>
     <script src="../js/core/apiClient.js"></script>
     <script src="../js/pages/community-page.js"></script>
     <script src="../js/components/notifications.js"></script>

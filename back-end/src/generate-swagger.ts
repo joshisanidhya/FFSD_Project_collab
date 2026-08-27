@@ -8,7 +8,7 @@ async function generateSwagger() {
   const app = await NestFactory.create(AppModule, { logger: false });
 
   const config = new DocumentBuilder()
-    .setTitle('Se7enSquare Backend API')
+    .setTitle('Gameunity Backend API')
     .setDescription('In-memory NestJS backend for frontend integration and academic evaluation')
     .setVersion('1.0')
     .addApiKey(

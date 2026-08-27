@@ -26,6 +26,7 @@ import { EventRegistrationsModule } from './modules/event-registrations/event-re
 import { MessagesModule } from './modules/messages/messages.module';
 import { PlatformConfigModule } from './modules/platform-config/platform-config.module';
 import { UploadModule } from './modules/upload/upload.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PlatformConfigController } from './modules/platform-config/platform-config.controller';
 import { UploadController } from './modules/upload/upload.controller';
 import { ReportsController } from './modules/reports/reports.controller';
@@ -52,6 +53,7 @@ import { AppealsController } from './modules/appeals/appeals.controller';
     AuditModule,
     PlatformConfigModule,
     UploadModule,
+    NotificationsModule,
   ],
   providers: [
     FileLoggerService,

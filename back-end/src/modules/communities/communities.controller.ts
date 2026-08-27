@@ -97,15 +97,18 @@ export class CommunitiesController {
   }
 
   @Delete(':id')
-  @Roles(AppRole.ADMIN)
+  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.USER)
   @ApiOperation({
     summary: 'Delete a community',
-    description: 'Permanently deletes a community and cascades to related memberships and events. Requires x-role: admin.',
+    description:
+      'Permanently deletes a community and cascades to related memberships and events. Same trust model as ' +
+      'create/update — any authenticated role may call this; the frontend is responsible for only showing the ' +
+      'Delete action to the community owner or an admin, since there is no per-request user identity to enforce it server-side.',
   })
   @ApiParam({ name: 'id', type: Number, description: 'Numeric community ID to delete' })
   @ApiOkResponse({ schema: { example: { message: 'Community 3 deleted' } }, description: 'Deletion confirmation' })
   @ApiNotFoundResponse({ description: 'Community not found' })
-  @ApiForbiddenResponse({ description: 'Only admin can delete communities' })
+  @ApiForbiddenResponse({ description: 'Missing or invalid x-role header' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.communitiesService.remove(id);
   }

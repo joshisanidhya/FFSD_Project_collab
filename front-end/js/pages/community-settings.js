@@ -1,5 +1,5 @@
 /**
- * Se7enSquare - Community Settings
+ * Gameunity - Community Settings
  * Functional localStorage-backed settings for basic info, members, channels,
  * and simple roles.
  */
@@ -120,15 +120,40 @@ function renderHeader() {
   if (mark) mark.textContent = name.trim().charAt(0).toUpperCase() || "G";
 }
 
-function renderMembers() {
+async function renderMembers() {
   const list = document.getElementById("settingsMemberList");
   if (!list) return;
 
-  const members = currentCommunity.members.length
-    ? currentCommunity.members
-    : [
-        { name: "Community Owner", handle: "@owner", role: "Owner", initials: "CO", status: "Active" },
-      ];
+  list.innerHTML = `<div class="empty-state">Loading members…</div>`;
+
+  let members = [];
+  try {
+    const [memberships, users] = await Promise.all([
+      window.API.memberships.getAll({ communityId: currentCommunity.id }),
+      window.API.users.getAll(),
+    ]);
+    const usersById = new Map(users.map((u) => [String(u.id), u]));
+    members = memberships.map((m) => {
+      const user = usersById.get(String(m.userId));
+      const isOwner = user && String(user.id) === String(currentCommunity.ownerId);
+      return {
+        userId: m.userId,
+        name: user ? (user.username || user.email) : `User #${m.userId}`,
+        handle: user ? `@${user.username}` : "",
+        role: isOwner ? "Owner" : "Member",
+        initials: initialsFromName(user?.username || `U${m.userId}`),
+        status: "Active",
+      };
+    });
+  } catch (err) {
+    console.warn("[CommunitySettings] Could not load real members, showing local fallback:", err.message);
+    members = currentCommunity.members.length ? currentCommunity.members : [];
+  }
+
+  if (!members.length) {
+    list.innerHTML = `<div class="empty-state">No members yet.</div>`;
+    return;
+  }
 
   list.innerHTML = members.map((member) => `
     <div class="member-item">
@@ -137,9 +162,14 @@ function renderMembers() {
         <div class="member-name">${member.name || "Member"} <span class="muted-inline">${member.handle || ""}</span></div>
         <div class="member-date">${member.role || "Member"} &middot; ${member.status || "Active"}</div>
       </div>
+      ${member.userId ? `<button class="btn-sm danger" onclick="reportMember(${member.userId})">Report</button>` : ""}
     </div>
   `).join("");
 }
+
+window.reportMember = function (userId) {
+  window.location.href = `report.html?targetType=user&targetId=${encodeURIComponent(userId)}`;
+};
 
 function renderChannels() {
   const list = document.getElementById("settingsChannelList");
@@ -324,7 +354,7 @@ window.toast = function (msg) {
   setTimeout(() => toastEl.classList.remove("show"), 2400);
 };
 
-window.submitCreateChannel = function () {
+window.submitCreateChannel = async function () {
   const nameInput = document.getElementById("chNameInput");
   const typeInput = document.getElementById("chTypeInput");
   const rawName = nameInput?.value.trim();
@@ -341,25 +371,47 @@ window.submitCreateChannel = function () {
     return;
   }
 
-  currentCommunity.channels.push({
-    id: String(Date.now()),
-    name: normalizedName,
-    type: typeInput?.value || "Text",
-  });
+  const nextChannels = [
+    ...currentCommunity.channels,
+    { id: String(Date.now()), name: normalizedName, type: typeInput?.value || "Text" },
+  ];
 
+  // Save immediately — the modal says "added", so it should actually be
+  // persisted right away rather than waiting for a separate "Save Changes"
+  // click the user may not realize is still needed.
+  if (window.API?.communities && currentCommunity.id) {
+    try {
+      await window.API.communities.update(currentCommunity.id, { channels: nextChannels });
+    } catch (err) {
+      toast("⚠️ Could not create channel: " + err.message);
+      return;
+    }
+  }
+
+  currentCommunity.channels = nextChannels;
   renderChannels();
   closeModal("modalBg");
   if (nameInput) nameInput.value = "";
-  setDirty(true);
-  toast(`Channel #${normalizedName} added`);
+  toast(`✅ Channel #${normalizedName} created`);
 };
 
-window.deleteChannel = function (channelId) {
-  currentCommunity.channels = currentCommunity.channels.filter(
+window.deleteChannel = async function (channelId) {
+  const nextChannels = currentCommunity.channels.filter(
     (channel) => normalizeId(channel.id) !== normalizeId(channelId)
   );
+
+  if (window.API?.communities && currentCommunity.id) {
+    try {
+      await window.API.communities.update(currentCommunity.id, { channels: nextChannels });
+    } catch (err) {
+      toast("⚠️ Could not delete channel: " + err.message);
+      return;
+    }
+  }
+
+  currentCommunity.channels = nextChannels;
   renderChannels();
-  setDirty(true);
+  toast("Channel deleted");
 };
 
 window.discardSettings = function () {

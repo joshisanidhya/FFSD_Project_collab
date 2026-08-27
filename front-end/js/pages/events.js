@@ -1,5 +1,5 @@
 /**
- * Se7enSquare — Events Page
+ * Gameunity — Events Page
  * Fully backend-driven: all CRUD goes to /api/events & /api/communities
  */
 
@@ -25,23 +25,6 @@ function readStoredEvents() {
 
 function writeStoredEvents(events) {
     localStorage.setItem(EVENTS_STORAGE_KEY, JSON.stringify(events));
-}
-
-function createEvent(data) {
-    const events = readStoredEvents();
-    const currentUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
-    const event = {
-        ...data,
-        id: Date.now(),
-        createdBy: currentUser?.username || currentUser?.name || data.createdBy || 'user1',
-        attendees: 0,
-        status: 'pending'
-    };
-
-    events.push(event);
-    writeStoredEvents(events);
-    alert('Event request sent for approval');
-    return event;
 }
 
 function isApprovedEvent(event) {
@@ -453,7 +436,7 @@ async function handleEventSubmit() {
             maxAttendees: Number(maxEl.value),
             category: categoryEl.value,
             type: selectedEventType,
-            status: canApproveEvents() ? 'approved' : 'pending',
+            status: 'pending', // every new event needs explicit review, regardless of who created it
             attendees: 0,
             createdBy: (typeof getCurrentUser === 'function' ? getCurrentUser()?.username : null) || 'user',
             coverImage: window.currentEventCover || ''
@@ -461,9 +444,10 @@ async function handleEventSubmit() {
         _events.push(created);
         writeStoredEvents(_events);
         if (window.toast) {
-            window.toast(`"${titleEl.value.trim()}" submitted for manager approval.`);
+            window.toast(`"${titleEl.value.trim()}" submitted for approval.`);
+        } else {
+            console.warn('[Events] window.toast unavailable — event created but no confirmation shown.');
         }
-        else alert('Event sent for approval');
         resetForm();
         const btn = document.querySelector('.tab-btn[onclick*="upcoming"]');
         switchTab('upcoming', btn || document.querySelector('.tab-btn'));
@@ -522,6 +506,40 @@ window.saveDraft = function () {
     });
     localStorage.setItem('eventDrafts', JSON.stringify(drafts));
     if (window.toast) window.toast('Draft saved locally.');
+};
+
+// Drafts could be saved (saveDraft(), above) but never loaded back anywhere —
+// the button existed, nothing consumed what it wrote. This closes that loop.
+window.loadLatestDraft = function () {
+    const drafts = JSON.parse(localStorage.getItem('eventDrafts') || '[]');
+    if (drafts.length === 0) {
+        if (window.toast) window.toast('No saved drafts yet.');
+        return;
+    }
+
+    const draft = drafts[drafts.length - 1];
+    const setVal = (id, value) => { const el = document.getElementById(id); if (el) el.value = value ?? ''; };
+
+    setVal('evTitle', draft.title);
+    setVal('evDesc', draft.description);
+    setVal('evDate', draft.date);
+    setVal('evTime', draft.time);
+    setVal('evCommunity', draft.communityId);
+    setVal('evMax', draft.capacity);
+    setVal('evCategory', draft.category);
+    window.currentEventCover = draft.coverImage || '';
+
+    if (draft.coverImage) {
+        const uploadPreview = document.getElementById('uploadPreview');
+        const uploadDefault = document.getElementById('uploadDefault');
+        if (uploadPreview) {
+            uploadPreview.innerHTML = `<img src="${draft.coverImage}" alt="Event cover preview">`;
+            uploadPreview.style.display = 'block';
+        }
+        if (uploadDefault) uploadDefault.style.display = 'none';
+    }
+
+    if (window.toast) window.toast(`Loaded draft: "${draft.title || 'Untitled event'}"`);
 };
 
 function renderRoleControls() {

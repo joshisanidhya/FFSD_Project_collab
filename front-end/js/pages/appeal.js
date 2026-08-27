@@ -138,8 +138,9 @@ window.submitAppeal = async function() {
     submitBtn.disabled = true;
 
     try {
+        let created = null;
         if (window.API?.appeals) {
-            await window.API.appeals.create(formData);
+            created = await window.API.appeals.create(formData);
         } else {
             await new Promise(resolve => setTimeout(resolve, 1500));
         }
@@ -147,6 +148,9 @@ window.submitAppeal = async function() {
         // Transition to Success State
         document.getElementById('formWrap').style.display = 'none';
         document.getElementById('successWrap').classList.add('show');
+
+        const refEl = document.getElementById('appealRefId');
+        if (refEl) refEl.textContent = created?.id ? `APL-${created.id}` : 'pending sync';
         
         // Scroll to top of the wrap
         const pageWrap = document.querySelector('.page-wrap');
