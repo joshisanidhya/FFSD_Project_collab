@@ -82,9 +82,99 @@ function renderCommunityData() {
     // Use explicitly-created channels first, then fall back to tags
     renderChannelsFromTags(channelSource);
     renderCommunityEvents();
+    renderCommunityMembers();
     initJoinState(_comm.id);
     initCommunityNavigation(_comm.id);
 }
+
+// ── Members ───────────────────────────────────────────────────────────────────
+let _members = []; // raw joined membership+user records for the current community
+
+function initialsFromName(name = '') {
+    const parts = String(name).trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return 'U';
+    return (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase();
+}
+
+async function renderCommunityMembers() {
+    const container = document.getElementById('membersContainer');
+    if (!container || !_comm) return;
+
+    container.innerHTML = '<div class="empty-state" style="padding:20px;color:var(--text-muted);font-size:13px;">Loading members…</div>';
+
+    try {
+        const [memberships, users] = await Promise.all([
+            window.API.memberships.getAll({ communityId: _comm.id }),
+            window.API.users.getAll(),
+        ]);
+        const usersById = new Map(users.map(u => [String(u.id), u]));
+        _members = memberships.map(m => {
+            const user = usersById.get(String(m.userId));
+            const isOwner = user && String(user.id) === String(_comm.ownerId);
+            const isMod = !isOwner && (user?.role === 'moderator' || user?.role === 'community_manager');
+            return {
+                userId: m.userId,
+                name: user ? (user.username || user.email) : `User #${m.userId}`,
+                role: isOwner ? 'owner' : (isMod ? 'moderator' : 'member'),
+            };
+        });
+    } catch (err) {
+        console.warn('[CommunityPage] Could not load real members:', err.message);
+        _members = [];
+    }
+
+    renderMembersList('');
+}
+
+function renderMembersList(query) {
+    const container = document.getElementById('membersContainer');
+    if (!container) return;
+
+    const q = (query || '').trim().toLowerCase();
+    const filtered = q ? _members.filter(m => m.name.toLowerCase().includes(q)) : _members;
+
+    if (!filtered.length) {
+        container.innerHTML = `<div class="empty-state" style="padding:20px;color:var(--text-muted);font-size:13px;">${_members.length ? 'No members match your search.' : 'No members yet.'}</div>`;
+        return;
+    }
+
+    const groups = [
+        { key: 'owner', label: '👑 Owner', roleClass: 'role-owner', roleLabel: 'Owner' },
+        { key: 'moderator', label: '🛡 Moderators', roleClass: 'role-moderator', roleLabel: 'Moderator' },
+        { key: 'member', label: '🟢 Members', roleClass: 'role-member', roleLabel: 'Member' },
+    ];
+
+    container.innerHTML = groups.map(g => {
+        const members = filtered.filter(m => m.role === g.key);
+        if (!members.length) return '';
+        return `
+            <div>
+              <div class="member-group-title">${g.label} — ${members.length}</div>
+              <div class="member-grid">
+                ${members.map(m => `
+                  <div class="member-card">
+                    <div class="m-avatar grad-purple">
+                      ${escapeHTML(initialsFromName(m.name))}
+                      <div class="m-status bg-dot-green"></div>
+                    </div>
+                    <div class="m-name">${escapeHTML(m.name)}</div>
+                    <span class="m-role ${g.roleClass}">${g.roleLabel}</span>
+                    <button class="report-btn" style="margin-top:6px;" onclick="reportMember(${m.userId})">Report</button>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+        `;
+    }).join('') || `<div class="empty-state" style="padding:20px;color:var(--text-muted);font-size:13px;">No members match your search.</div>`;
+}
+
+window.filterMembers = function (query) {
+    renderMembersList(query);
+};
+
+window.reportMember = function (userId) {
+    window.location.href = `report.html?targetType=user&targetId=${encodeURIComponent(userId)}`;
+};
 
 function renderChannelsFromTags(tags) {
     const container = document.getElementById('channelsList');
