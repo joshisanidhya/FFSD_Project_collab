@@ -80,6 +80,7 @@
                     <select class="form-input form-select" id="login-role" required>
                         <option value="">Select your role</option>
                         <option value="admin">🛡️ System Admin</option>
+                        <option value="owner">👑 Platform Owner</option>
                         <option value="community_manager">📅 Community Manager</option>
                         <option value="moderator">🔍 Moderator</option>
                         <option value="user">🎮 User</option>
@@ -99,6 +100,7 @@
                     <button type="button" class="demo-pill" onclick="quickLogin('karmanya', 'moderator')">🔍 KARMANYA (MOD)</button>
                     <button type="button" class="demo-pill" onclick="quickLogin('anant', 'community_manager')">📅 ANANT (CM)</button>
                     <button type="button" class="demo-pill" onclick="quickLogin('awadhesh', 'user')">🎮 AWADHESH (USER)</button>
+                    <button type="button" class="demo-pill" onclick="quickLogin('sanidhya', 'owner')">👑 SANIDHYA (OWNER)</button>
                 </div>
 
                 <div class="auth-divider">
@@ -263,6 +265,7 @@
     </div>
 
     <script src="../js/core/auth.js"></script>
+    <script src="../js/core/apiClient.js"></script>
     <script src="../js/pages/login.js"></script>
 </body>
 
