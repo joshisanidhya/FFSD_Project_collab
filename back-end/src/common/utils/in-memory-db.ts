@@ -144,7 +144,7 @@ export interface PlatformConfigRecord {
 }
 
 const counters = {
-  user: 5,
+  user: 6,
   community: 3,
   membership: 5,
   event: 4,
@@ -163,6 +163,7 @@ let seedDb = {
     { id: 2, username: 'mod01', email: 'mod@gameunity.local', role: AppRole.MODERATOR, bio: 'Community moderator' },
     { id: 3, username: 'cm01', email: 'cm@gameunity.local', role: AppRole.COMMUNITY_MANAGER, bio: 'Community event manager' },
     { id: 4, username: 'player01', email: 'player@gameunity.local', role: AppRole.USER, bio: 'Loves FPS and RPG games' },
+    { id: 5, username: 'sanidhya', email: 'sanidhya@gameunity.local', role: AppRole.OWNER, firstName: 'Sanidhya', lastName: 'Joshi', bio: 'Platform owner' },
   ] as UserRecord[],
   communities: [
     {

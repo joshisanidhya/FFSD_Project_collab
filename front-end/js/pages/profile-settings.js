@@ -190,7 +190,15 @@ window.saveAllChanges = async function () {
     const saveBtn = document.getElementById('btnSaveAll');
     if (!saveBtn) return;
 
-    const reqFields = ['inpFirstName', 'inpLastName', 'inpHandle', 'inpFullName', 'inpEmail', 'inpPhone'];
+    // Phone and lastName are deliberately NOT in this list:
+    // - Phone has no `required` attribute in the HTML and is never collected at
+    //   registration, so every seed/freshly-registered account has it empty.
+    // - lastName is explicitly optional on the backend (RegisterDto: "May be empty
+    //   for single-word full names") — the 4 backend seed accounts (admin01, mod01,
+    //   cm01, player01) have no lastName at all.
+    // Treating either as hard-required here blocked Save Changes (and therefore
+    // avatar uploads, which only persist on Save) for every one of those accounts.
+    const reqFields = ['inpFirstName', 'inpHandle', 'inpFullName', 'inpEmail'];
     let hasError = false;
 
     // Check required fields

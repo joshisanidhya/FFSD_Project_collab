@@ -11,6 +11,7 @@ let toastTimeout;
 
 const ROLE_REDIRECTS = {
     admin: 'admin-dashboard.html',
+    owner: 'owner-dashboard.html',
     community_manager: 'events.html',
     moderator: 'dashboard.html',
     user: 'dashboard.html',
@@ -22,7 +23,8 @@ const DEFAULT_USERS = [
     { email: 'rajat@gameunity.com', username: 'rajat', firstName: 'Rajat', lastName: 'Jain', password: 'Rajat@123', role: 'admin', avatar: null },
     { email: 'karmanya@gameunity.com', username: 'karmanya', firstName: 'Karmanya', lastName: 'Bansal', password: 'Karmanya@123', role: 'moderator', avatar: null },
     { email: 'anant@gameunity.com', username: 'anant', firstName: 'Anant', lastName: 'Gupta', password: 'Demo@123', role: 'community_manager', avatar: null },
-    { email: 'awadhesh@gameunity.com', username: 'awadhesh', firstName: 'Awadhesh', lastName: 'Kumar', password: 'Demo@123', role: 'user', avatar: null }
+    { email: 'awadhesh@gameunity.com', username: 'awadhesh', firstName: 'Awadhesh', lastName: 'Kumar', password: 'Demo@123', role: 'user', avatar: null },
+    { email: 'sanidhya@gameunity.com', username: 'sanidhya', firstName: 'Sanidhya', lastName: 'Joshi', password: 'Demo@123', role: 'owner', avatar: null }
 ];
 
 /** * Persistent Mock Database Helpers 
