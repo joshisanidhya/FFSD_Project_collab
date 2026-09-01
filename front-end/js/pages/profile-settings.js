@@ -515,6 +515,8 @@ async function loadMembershipData() {
         console.error('[Profile] Could not load subscription status:', err.message);
     }
 
+    loadModeratorStatus(user);
+
     const role = typeof normalizeRole === 'function' ? normalizeRole(user.role) : user.role;
     const statusEl = document.getElementById('ps-organizer-status');
     const btnEl = document.getElementById('ps-organizer-apply-btn');
@@ -560,3 +562,85 @@ window.applyAsOrganizer = async function () {
         if (window.toast) window.toast('⚠️ ' + err.message);
     }
 };
+
+// --- 8. MODERATOR CERTIFICATION QUIZ ---
+async function loadModeratorStatus(user) {
+    const statusEl = document.getElementById('ps-moderator-status');
+    const btnEl = document.getElementById('ps-moderator-apply-btn');
+    if (!statusEl || !btnEl) return;
+
+    const role = typeof normalizeRole === 'function' ? normalizeRole(user.role) : user.role;
+    if (role === 'moderator') {
+        statusEl.textContent = "✅ You're a Certified Moderator.";
+        btnEl.style.display = 'none';
+        return;
+    }
+    if (role === 'admin' || role === 'owner') {
+        statusEl.textContent = 'Moderator applications are for gamer accounts.';
+        btnEl.style.display = 'none';
+        return;
+    }
+
+    try {
+        const status = await window.API.moderatorCertification.status(user.id);
+        if (status.status === 'pending') {
+            statusEl.textContent = `⏳ Quiz passed (${status.quizScore}%) — pending admin review.`;
+            btnEl.style.display = 'none';
+        } else if (status.status === 'rejected' && status.quizScore !== undefined) {
+            statusEl.textContent = status.quizScore < 70
+                ? `❌ Last attempt scored ${status.quizScore}% (70% required). You can retake it.`
+                : '❌ Your last application was rejected by an admin. You can retake the quiz.';
+            btnEl.textContent = 'Retake the Quiz';
+        } else {
+            statusEl.textContent = "You haven't taken the moderation quiz yet.";
+            btnEl.textContent = 'Take the Quiz';
+        }
+    } catch (err) {
+        console.error('[Profile] Could not load moderator status:', err.message);
+    }
+}
+
+window.startModeratorQuiz = async function () {
+    const container = document.getElementById('ps-moderator-quiz');
+    const btnEl = document.getElementById('ps-moderator-apply-btn');
+    if (!container) return;
+    try {
+        const questions = await window.API.moderatorCertification.quiz();
+        container.innerHTML = questions.map((q, qi) => `
+            <div style="margin-bottom:14px;">
+                <div style="font-size:13px;color:var(--text-1);margin-bottom:6px;">${qi + 1}. ${escapeForQuiz(q.question)}</div>
+                ${q.options.map((opt, oi) => `
+                    <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-2);padding:4px 0;cursor:pointer;">
+                        <input type="radio" name="ps-quiz-q${qi}" value="${oi}"> ${escapeForQuiz(opt)}
+                    </label>`).join('')}
+            </div>`).join('') + `<div class="btn-sm accent" onclick="submitModeratorQuiz(${questions.length})">Submit Answers</div>`;
+        if (btnEl) btnEl.style.display = 'none';
+    } catch (err) {
+        if (window.toast) window.toast('⚠️ ' + err.message);
+    }
+};
+
+window.submitModeratorQuiz = async function (questionCount) {
+    const user = window.getCurrentUser();
+    if (!user?.id) { if (window.toast) window.toast('⚠️ No signed-in user id — please log back in'); return; }
+
+    const answers = [];
+    for (let qi = 0; qi < questionCount; qi++) {
+        const checked = document.querySelector(`input[name="ps-quiz-q${qi}"]:checked`);
+        if (!checked) { if (window.toast) window.toast(`⚠️ Answer question ${qi + 1} before submitting`); return; }
+        answers.push(Number(checked.value));
+    }
+
+    try {
+        const result = await window.API.moderatorCertification.apply(user.id, answers);
+        if (window.toast) window.toast(result.status === 'pending' ? `✅ Scored ${result.quizScore}% — submitted for admin review` : `❌ Scored ${result.quizScore}% — 70% required to pass`);
+        document.getElementById('ps-moderator-quiz').innerHTML = '';
+        loadModeratorStatus(user);
+    } catch (err) {
+        if (window.toast) window.toast('⚠️ ' + err.message);
+    }
+};
+
+function escapeForQuiz(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}

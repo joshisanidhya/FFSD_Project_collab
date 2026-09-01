@@ -49,6 +49,7 @@ const NAV_ADMIN = {
     { id: 'admin-dash', name: 'Admin Panel', link: 'admin-dashboard.html', icon: '⚡', badge: 'ADMIN' },
     { id: 'users', name: 'User Management', link: 'admin-dashboard.html#users', icon: '👤' },
     { id: 'communities', name: 'Communities', link: 'admin-dashboard.html#communities', icon: '🏘️' },
+    { id: 'applications', name: 'Applications', link: 'admin-dashboard.html#applications', icon: '📝' },
     { id: 'audit', name: 'Audit Logs', link: 'admin-dashboard.html#audit', icon: '📋' },
   ],
 };

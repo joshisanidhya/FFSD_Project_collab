@@ -2177,6 +2177,45 @@
         ]
       }
     },
+    "/api/organisers": {
+      "get": {
+        "operationId": "OrganisersController_findAll",
+        "summary": "List all organiser applications",
+        "description": "Admin-only — powers the approval queue.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "RBAC role header. apply/profile/analytics/subscription-upgrade: user | organizer | admin. PATCH :id (verify/reject) requires admin only.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "pending",
+                "verified",
+                "rejected"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "organisers"
+        ]
+      }
+    },
     "/api/organisers/apply": {
       "post": {
         "operationId": "OrganisersController_apply",
@@ -2452,6 +2491,265 @@
         },
         "tags": [
           "featured-events"
+        ]
+      }
+    },
+    "/api/moderator-certification": {
+      "get": {
+        "operationId": "ModeratorCertificationController_findAll",
+        "summary": "List all moderator applications",
+        "description": "Admin-only — powers the approval queue.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "RBAC role header. quiz/apply/status: user | organizer | admin. PATCH :id (certify/reject) requires admin only.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "pending",
+                "certified",
+                "rejected"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "moderator-certification"
+        ]
+      }
+    },
+    "/api/moderator-certification/quiz": {
+      "get": {
+        "operationId": "ModeratorCertificationController_quiz",
+        "summary": "Get the moderation quiz questions",
+        "description": "Answer key is never returned — score via POST /apply.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "RBAC role header. quiz/apply/status: user | organizer | admin. PATCH :id (certify/reject) requires admin only.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "moderator-certification"
+        ]
+      }
+    },
+    "/api/moderator-certification/apply": {
+      "post": {
+        "operationId": "ModeratorCertificationController_apply",
+        "summary": "Submit the moderation quiz to apply for Certified Moderator status",
+        "description": "Scoring ≥70% moves to pending admin review; below 70% is rejected immediately and may be retaken.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "RBAC role header. quiz/apply/status: user | organizer | admin. PATCH :id (certify/reject) requires admin only.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitQuizDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "moderator-certification"
+        ]
+      }
+    },
+    "/api/moderator-certification/{id}": {
+      "patch": {
+        "operationId": "ModeratorCertificationController_setStatus",
+        "summary": "Certify or reject a moderator application",
+        "description": "Admin-only. On certification, also flips the applicant's account role to moderator.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "RBAC role header. quiz/apply/status: user | organizer | admin. PATCH :id (certify/reject) requires admin only.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateModeratorStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "moderator-certification"
+        ]
+      }
+    },
+    "/api/moderator-certification/status": {
+      "get": {
+        "operationId": "ModeratorCertificationController_status",
+        "summary": "Get a user's moderator application status",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "RBAC role header. quiz/apply/status: user | organizer | admin. PATCH :id (certify/reject) requires admin only.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": 4,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Application status and quiz score"
+          }
+        },
+        "tags": [
+          "moderator-certification"
+        ]
+      }
+    },
+    "/api/ratings": {
+      "post": {
+        "operationId": "RatingsController_create",
+        "summary": "Rate an organiser or moderator",
+        "description": "Doc §13 — player ratings feed the organiser/moderator trust score.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "RBAC role header. Any authenticated role may rate an organiser/moderator they interacted with.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRatingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ratings"
+        ]
+      },
+      "get": {
+        "operationId": "RatingsController_forTarget",
+        "summary": "Get ratings + average for an organiser or moderator",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "RBAC role header. Any authenticated role may rate an organiser/moderator they interacted with.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "targetType",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "organiser",
+                "moderator"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "targetUserId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": 6,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Average score, count, and the individual rating records"
+          }
+        },
+        "tags": [
+          "ratings"
         ]
       }
     }
@@ -2924,6 +3222,14 @@
           "organiserId": {
             "type": "number",
             "example": 6
+          },
+          "entryFee": {
+            "type": "number",
+            "example": 100
+          },
+          "prizePool": {
+            "type": "number",
+            "example": 30000
           }
         },
         "required": [
@@ -2998,6 +3304,16 @@
             "type": "number",
             "example": 6,
             "description": "Links to the organiser's user id — used for organizer-plan limit checks (createdBy is just a display string)"
+          },
+          "entryFee": {
+            "type": "number",
+            "example": 100,
+            "description": "₹ per player — doc §16 revenue sharing. 0/omitted means a free event."
+          },
+          "prizePool": {
+            "type": "number",
+            "example": 30000,
+            "description": "₹ displayed to players — set directly by the organiser, not auto-derived from entryFee."
           },
           "category": {
             "type": "string",
@@ -3079,6 +3395,16 @@
             "type": "number",
             "example": 6,
             "description": "Links to the organiser's user id — used for organizer-plan limit checks (createdBy is just a display string)"
+          },
+          "entryFee": {
+            "type": "number",
+            "example": 100,
+            "description": "₹ per player — doc §16 revenue sharing. 0/omitted means a free event."
+          },
+          "prizePool": {
+            "type": "number",
+            "example": 30000,
+            "description": "₹ displayed to players — set directly by the organiser, not auto-derived from entryFee."
           },
           "category": {
             "type": "string",
@@ -3790,6 +4116,86 @@
         "required": [
           "eventId",
           "userId"
+        ]
+      },
+      "SubmitQuizDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "number",
+            "example": 4
+          },
+          "answers": {
+            "example": [
+              1,
+              0,
+              2,
+              1,
+              0
+            ],
+            "description": "Zero-indexed selected option per question, in the order returned by GET /moderator-certification/quiz",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "userId",
+          "answers"
+        ]
+      },
+      "UpdateModeratorStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "certified",
+            "enum": [
+              "certified",
+              "rejected"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "CreateRatingDto": {
+        "type": "object",
+        "properties": {
+          "targetType": {
+            "type": "string",
+            "example": "organiser",
+            "enum": [
+              "organiser",
+              "moderator"
+            ]
+          },
+          "targetUserId": {
+            "type": "number",
+            "example": 6
+          },
+          "raterId": {
+            "type": "number",
+            "example": 4
+          },
+          "score": {
+            "type": "number",
+            "example": 5,
+            "minimum": 1,
+            "maximum": 5
+          },
+          "comment": {
+            "type": "string",
+            "example": "Ran a smooth, well-organized tournament."
+          }
+        },
+        "required": [
+          "targetType",
+          "targetUserId",
+          "raterId",
+          "score"
         ]
       }
     }

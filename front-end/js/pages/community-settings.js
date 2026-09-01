@@ -325,7 +325,40 @@ function activateSettingsTab(targetId, navEl) {
 window.switchSettingsTab = function (tabId, navEl) {
   const tabButton = navEl || document.querySelector(`[data-settings-tab="${tabId}"]`);
   activateSettingsTab(`settings-${tabId}`, tabButton);
+  if (tabId === 'insights') loadInsightsTab();
 };
+
+// Community Boost is an Ultra Pro perk (doc §8/§17) — gated on the community
+// OWNER's subscription plan, not the viewing user's.
+async function loadInsightsTab() {
+  if (!currentCommunity) return;
+
+  const memberEl = document.getElementById('insMemberCount');
+  const channelEl = document.getElementById('insChannelCount');
+  const onlineEl = document.getElementById('insOnlineCount');
+  if (memberEl) memberEl.textContent = currentCommunity.memberCount ?? (currentCommunity.members?.length || 0);
+  if (channelEl) channelEl.textContent = (currentCommunity.channels || []).length;
+  if (onlineEl) onlineEl.textContent = currentCommunity.onlineCount ?? 0;
+
+  const statusEl = document.getElementById('insBoostStatus');
+  const featuresEl = document.getElementById('insBoostFeatures');
+  if (!statusEl || !window.API) return;
+
+  try {
+    const sub = await window.API.subscriptions.status(currentCommunity.ownerId);
+    if (sub.plan === 'ultra_pro') {
+      statusEl.textContent = "🚀 Boosted — this community's owner is on Ultra Pro.";
+      featuresEl.innerHTML = ['Animated community icon', 'Priority discovery placement', 'Custom invite link', 'Event countdown widget', 'Larger upload limit']
+        .map(f => `<div>✓ ${f}</div>`).join('');
+    } else {
+      statusEl.textContent = 'Not boosted — the community owner is on the Free or Plus plan.';
+      featuresEl.innerHTML = `<div>Upgrading the owner's account to Ultra Pro unlocks: animated icon, priority discovery, custom invite link, event countdown widget, larger uploads.</div>`;
+    }
+  } catch (err) {
+    console.error('[CommunitySettings] Could not load boost status:', err.message);
+    statusEl.textContent = '⚠️ Could not reach the backend.';
+  }
+}
 
 window.goToCommunity = function () {
   const id = getCommunityId();

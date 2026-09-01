@@ -477,6 +477,7 @@ const API = {
         cancel:  (userId)         => API.post('/subscriptions/cancel', { userId }),
     },
     organisers: {
+        getAll:       (status) => API.get(`/organisers${status ? `?status=${encodeURIComponent(status)}` : ''}`),
         apply:        (userId, experienceNote) => API.post('/organisers/apply', { userId, experienceNote }),
         setStatus:    (id, status)             => API.patch(`/organisers/${id}`, { status }),
         profile:      (userId)                 => API.get(`/organisers/profile?userId=${encodeURIComponent(userId)}`),
@@ -491,6 +492,17 @@ const API = {
     payments: {
         history: (userId) => API.get(`/payments/history${userId ? `?userId=${encodeURIComponent(userId)}` : ''}`),
         summary: ()        => API.get('/payments/summary'),
+    },
+    moderatorCertification: {
+        getAll:    (status)                => API.get(`/moderator-certification${status ? `?status=${encodeURIComponent(status)}` : ''}`),
+        quiz:      ()                      => API.get('/moderator-certification/quiz'),
+        apply:     (userId, answers)       => API.post('/moderator-certification/apply', { userId, answers }),
+        setStatus: (id, status)            => API.patch(`/moderator-certification/${id}`, { status }),
+        status:    (userId)                => API.get(`/moderator-certification/status?userId=${encodeURIComponent(userId)}`),
+    },
+    ratings: {
+        create:    (targetType, targetUserId, raterId, score, comment) => API.post('/ratings', { targetType, targetUserId, raterId, score, comment }),
+        forTarget: (targetType, targetUserId) => API.get(`/ratings?targetType=${encodeURIComponent(targetType)}&targetUserId=${encodeURIComponent(targetUserId)}`),
     },
     notifications: {
         getAll: (userId) => API.get(`/notifications?userId=${encodeURIComponent(userId)}`),

@@ -36,5 +36,11 @@ export class EventDto {
 
   @ApiPropertyOptional({ example: 6 })
   organiserId?: number;
+
+  @ApiPropertyOptional({ example: 100 })
+  entryFee?: number;
+
+  @ApiPropertyOptional({ example: 30000 })
+  prizePool?: number;
 }
 

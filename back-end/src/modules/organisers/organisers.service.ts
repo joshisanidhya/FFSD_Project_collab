@@ -22,6 +22,15 @@ export class OrganisersService {
     return matches[matches.length - 1];
   }
 
+  /** Powers the Admin Dashboard approval queue (doc §11/§19). */
+  findAll(status?: OrganiserStatus) {
+    const records = status ? db.organisers.filter((item) => item.status === status) : db.organisers;
+    return records.map((item) => {
+      const user = db.users.find((u) => u.id === item.userId);
+      return { ...item, username: user?.username, email: user?.email };
+    });
+  }
+
   apply(userId: number, experienceNote?: string): OrganiserRecord {
     const existing = this.findByUserId(userId);
     if (existing && existing.status !== 'rejected') {
@@ -72,12 +81,24 @@ export class OrganisersService {
     const eventIds = new Set(myEvents.map((event) => event.id));
     const registrations = db.eventRegistrations.filter((reg) => eventIds.has(reg.eventId));
 
+    // Doc §16 Revenue Sharing — informational split per tournament's collected entry fees.
+    // Only the 15% platform cut is ever actually logged to the payments ledger (see
+    // event-registrations.service.ts); the rest is a display-only estimate here.
+    let totalCollected = 0;
+    myEvents.forEach((event) => {
+      if (!event.entryFee) return;
+      const regsForEvent = registrations.filter((reg) => reg.eventId === event.id).length;
+      totalCollected += event.entryFee * regsForEvent;
+    });
+
     return {
       totalTournaments: myEvents.length,
       approvedTournaments: myEvents.filter((event) => event.status === 'approved').length,
       pendingTournaments: myEvents.filter((event) => event.status === 'pending').length,
       totalRegistrations: registrations.length,
       averageRegistrationsPerTournament: myEvents.length ? Math.round((registrations.length / myEvents.length) * 10) / 10 : 0,
+      totalEntryFeeCollected: totalCollected,
+      estimatedOrganiserEarnings: Math.round(totalCollected * 0.15),
     };
   }
 

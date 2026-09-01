@@ -59,6 +59,8 @@ export interface EventRecord {
   status?: string;
   createdBy?: string;
   organiserId?: number; // links to UserRecord.id — used for organizer-plan limit checks (createdBy is just a display string)
+  entryFee?: number; // ₹ per player, doc §16 revenue sharing — 0/undefined means a free event
+  prizePool?: number; // ₹ displayed to players; not auto-derived from entryFee, organiser sets it directly
 }
 
 export interface PostRecord {
@@ -176,7 +178,7 @@ export interface FeaturedEventRecord {
   status: 'active' | 'expired';
 }
 
-export type PaymentType = 'subscription' | 'organiser_subscription' | 'featured_event';
+export type PaymentType = 'subscription' | 'organiser_subscription' | 'featured_event' | 'tournament_commission';
 
 export interface PaymentRecord {
   id: number;
@@ -184,6 +186,29 @@ export interface PaymentRecord {
   type: PaymentType;
   amount: number;
   description: string;
+  createdAt: string;
+}
+
+export type ModeratorApplicationStatus = 'pending' | 'certified' | 'rejected';
+
+export interface ModeratorApplicationRecord {
+  id: number;
+  userId: number;
+  status: ModeratorApplicationStatus;
+  quizScore: number; // 0–100
+  appliedAt: string;
+  certifiedAt?: string;
+}
+
+export type RatingTargetType = 'organiser' | 'moderator';
+
+export interface RatingRecord {
+  id: number;
+  targetType: RatingTargetType;
+  targetUserId: number;
+  raterId: number;
+  score: number; // 1–5
+  comment?: string;
   createdAt: string;
 }
 
@@ -203,6 +228,8 @@ const counters = {
   organiser: 2,
   featuredEvent: 1,
   payment: 1,
+  moderatorApplication: 1,
+  rating: 1,
 };
 
 let seedDb = {
@@ -396,6 +423,8 @@ let seedDb = {
   ] as OrganiserRecord[],
   featuredEvents: [] as FeaturedEventRecord[],
   payments: [] as PaymentRecord[],
+  moderatorApplications: [] as ModeratorApplicationRecord[],
+  ratings: [] as RatingRecord[],
   platformConfig: {
     registrationEnabled: true,
     eventApprovalRequired: true,

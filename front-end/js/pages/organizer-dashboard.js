@@ -21,7 +21,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (typeof enforcePageAccess === 'function' && !enforcePageAccess()) return;
     await loadAll();
     loadPlanCard();
+    loadEarningsStat();
 });
+
+// Doc §16 revenue sharing — estimated 15% organiser earnings from paid tournaments'
+// collected entry fees (informational; only the platform's cut is ever actually paid out).
+async function loadEarningsStat() {
+    const userId = currentUserId();
+    if (!userId) return;
+    try {
+        const analytics = await window.API.organisers.analytics(userId);
+        set('org-earnings', `₹${(analytics.estimatedOrganiserEarnings || 0).toLocaleString()}`);
+    } catch (err) {
+        console.error('[OrganizerDash] Could not load earnings:', err.message);
+    }
+}
 
 function currentUsername() {
     const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
@@ -145,7 +159,7 @@ function renderTable() {
 
     tbody.innerHTML = rows.map(e => `
         <tr>
-            <td><div class="row-name">${esc(e.title)}</div><div class="row-sub">${esc(e.type || 'tournament')}</div></td>
+            <td><div class="row-name">${esc(e.title)}</div><div class="row-sub">${esc(e.type || 'tournament')}${e.entryFee ? ` · ₹${e.entryFee} entry` : ' · free entry'}</div></td>
             <td>${esc(communityName(e.communityId))}</td>
             <td>${esc(e.date)}${e.time ? ' · ' + esc(e.time) : ''}</td>
             <td><span class="badge badge-${esc(e.status || 'pending')}">${esc(e.status || 'pending')}</span></td>
@@ -197,6 +211,10 @@ function eventFormHtml(event = {}) {
         <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="f-date" value="${esc(event.date || '')}"/></div>
         <div class="form-group"><label class="form-label">Time</label><input class="form-input" id="f-time" value="${esc(event.time || '')}" placeholder="6:00 PM"/></div>
         <div class="form-group"><label class="form-label">Max Participants</label><input class="form-input" type="number" min="1" id="f-max" value="${event.maxAttendees || 100}"/></div>
+        <div class="form-group"><label class="form-label">Entry Fee (₹)</label><input class="form-input" type="number" min="0" id="f-entry-fee" value="${event.entryFee || 0}"/>
+            <div style="font-size:11px;color:var(--text-3,#666);margin-top:4px;">0 = free tournament. A 15% platform commission is logged per paid registration (doc §16).</div>
+        </div>
+        <div class="form-group"><label class="form-label">Prize Pool (₹)</label><input class="form-input" type="number" min="0" id="f-prize-pool" value="${event.prizePool || 0}"/></div>
         <div class="form-group"><label class="form-label">Status</label><select class="form-input" id="f-status">
             <option value="approved" ${effectiveStatus === 'approved' ? 'selected' : ''}>Approved (published)</option>
             <option value="pending" ${effectiveStatus === 'pending' ? 'selected' : ''}>Pending</option>
@@ -211,6 +229,8 @@ window.confirmModal = async function () {
     const date           = document.getElementById('f-date')?.value;
     const time           = document.getElementById('f-time')?.value.trim();
     const maxAttendees   = Number(document.getElementById('f-max')?.value) || undefined;
+    const entryFee       = Number(document.getElementById('f-entry-fee')?.value) || 0;
+    const prizePool      = Number(document.getElementById('f-prize-pool')?.value) || 0;
     const status         = document.getElementById('f-status')?.value;
 
     if (!title || title.length < 3)             { toast('⚠️ Title must be at least 3 characters'); return; }
@@ -219,7 +239,7 @@ window.confirmModal = async function () {
     if (!date)                                    { toast('⚠️ Select a date'); return; }
 
     const payload = {
-        title, description, communityId, date, time, maxAttendees, status,
+        title, description, communityId, date, time, maxAttendees, status, entryFee, prizePool,
         type: 'tournament',
         createdBy: currentUsername(),
         organiserId: currentUserId(),

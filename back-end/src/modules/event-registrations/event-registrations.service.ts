@@ -1,8 +1,17 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { db, EventRegistrationRecord, nextId, saveDb } from '../../common/utils/in-memory-db';
+import { PaymentsService } from '../payments/payments.service';
+
+// Doc §16 Revenue Sharing Model: Prize Pool 60% / Organizer 15% / Moderator team 10% /
+// Platform Commission 15%. "Platform revenue comes only from commission" (doc's own
+// conclusion) — so only the platform's cut is logged to the payments ledger; the
+// other splits are informational only (surfaced via organiser analytics), not paid out.
+const PLATFORM_COMMISSION_RATE = 0.15;
 
 @Injectable()
 export class EventRegistrationsService {
+  constructor(private readonly paymentsService: PaymentsService) {}
+
   findAll(userId?: number, eventId?: number): EventRegistrationRecord[] {
     return db.eventRegistrations.filter((item) =>
       (!userId || item.userId === userId) && (!eventId || item.eventId === eventId),
@@ -29,6 +38,17 @@ export class EventRegistrationsService {
     db.eventRegistrations.push(created);
     event.attendees = (event.attendees || 0) + 1;
     saveDb();
+
+    if (event.entryFee && event.entryFee > 0) {
+      const platformCommission = Math.round(event.entryFee * PLATFORM_COMMISSION_RATE);
+      this.paymentsService.record(
+        payload.userId,
+        'tournament_commission',
+        platformCommission,
+        `Platform commission (15%) on ₹${event.entryFee} entry fee — "${event.title}"`,
+      );
+    }
+
     return created;
   }
 

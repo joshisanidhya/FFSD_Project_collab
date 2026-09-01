@@ -71,6 +71,20 @@ export class CreateEventDto {
   @Min(1)
   organiserId?: number;
 
+  @ApiPropertyOptional({ example: 100, description: '₹ per player — doc §16 revenue sharing. 0/omitted means a free event.' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  entryFee?: number;
+
+  @ApiPropertyOptional({ example: 30000, description: '₹ displayed to players — set directly by the organiser, not auto-derived from entryFee.' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  prizePool?: number;
+
   @ApiPropertyOptional({ example: 'Esports' })
   @IsOptional()
   @IsString()

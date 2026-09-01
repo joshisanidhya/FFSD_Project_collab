@@ -64,13 +64,13 @@ window.navTo = function (page, el) {
 
     document.getElementById('page-' + page)?.classList.add('active');
 
-    const sbMap = { overview: 'admin-dash', users: 'users', communities: 'communities', moderation: 'report', 'events-mgmt': 'events', appeals: 'appeals', audit: 'audit', config: 'settings' };
+    const sbMap = { overview: 'admin-dash', users: 'users', communities: 'communities', moderation: 'report', 'events-mgmt': 'events', applications: 'applications', appeals: 'appeals', audit: 'audit', config: 'settings' };
     const sbId = sbMap[page];
     if (sbId) document.querySelector(`.sb-item[data-id="${sbId}"]`)?.classList.add('sb-item--active');
     if (el) el.classList.add('active');
 
-    const titles = { overview: 'System Overview', users: 'User Management', communities: 'Communities', moderation: 'Moderation', 'events-mgmt': 'Events Management', appeals: 'Appeals', audit: 'Audit Log', config: 'Platform Configuration' };
-    const icons  = { overview: '⚡', users: '👤', communities: '🏘️', moderation: '🛡️', 'events-mgmt': '📅', appeals: '⚖️', audit: '📋', config: '🔧' };
+    const titles = { overview: 'System Overview', users: 'User Management', communities: 'Communities', moderation: 'Moderation', 'events-mgmt': 'Events Management', applications: 'Applications', appeals: 'Appeals', audit: 'Audit Log', config: 'Platform Configuration' };
+    const icons  = { overview: '⚡', users: '👤', communities: '🏘️', moderation: '🛡️', 'events-mgmt': '📅', applications: '📝', appeals: '⚖️', audit: '📋', config: '🔧' };
 
     document.getElementById('page-title').textContent = titles[page] || page;
     const pageIcon = document.getElementById('page-icon');
@@ -81,6 +81,7 @@ window.navTo = function (page, el) {
     if (page === 'communities')  renderCommunities();
     if (page === 'moderation')   renderReports();
     if (page === 'events-mgmt')  renderEventsAdmin();
+    if (page === 'applications') renderApplications();
     if (page === 'appeals')      renderAppeals();
     if (page === 'audit')        renderAuditLog();
     if (page === 'config')       renderConfig();
@@ -345,6 +346,67 @@ function renderEventsAdmin() {
     if (_events.length === 0) grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📅</div><div class="empty-state-text">No events</div></div>';
 }
 
+// ── Applications (Verified Organizer / Certified Moderator approval queues) ───
+async function renderApplications() {
+    const orgTbody = document.getElementById('organiser-apps-tbody');
+    const modTbody = document.getElementById('moderator-apps-tbody');
+    if (!orgTbody || !modTbody) return;
+
+    try {
+        const organiserApps = await window.API.organisers.getAll();
+        const pending = organiserApps.filter(a => a.status === 'pending');
+        orgTbody.innerHTML = pending.map(a => `
+            <tr>
+                <td><div class="row-name">${esc(a.username || `User #${a.userId}`)}</div><div class="row-sub">${esc(a.email || '')}</div></td>
+                <td>${esc(a.experienceNote || '—')}</td>
+                <td>${new Date(a.appliedAt).toLocaleDateString()}</td>
+                <td><span class="badge badge-pending">${esc(a.status)}</span></td>
+                <td><div class="btn-row">
+                    <button class="act-btn act-view" onclick="decideOrganiserApp(${a.id},'verified')">Verify</button>
+                    <button class="act-btn act-delete" onclick="decideOrganiserApp(${a.id},'rejected')">Reject</button>
+                </div></td>
+            </tr>`).join('');
+        if (pending.length === 0) orgTbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><div class="empty-state-icon">🏆</div><div class="empty-state-text">No pending organizer applications</div></div></td></tr>';
+    } catch (err) {
+        orgTbody.innerHTML = `<tr><td colspan="5">⚠️ ${esc(err.message)}</td></tr>`;
+    }
+
+    try {
+        const moderatorApps = await window.API.moderatorCertification.getAll();
+        const pending = moderatorApps.filter(a => a.status === 'pending');
+        modTbody.innerHTML = pending.map(a => `
+            <tr>
+                <td><div class="row-name">${esc(a.username || `User #${a.userId}`)}</div><div class="row-sub">${esc(a.email || '')}</div></td>
+                <td>${a.quizScore}%</td>
+                <td>${new Date(a.appliedAt).toLocaleDateString()}</td>
+                <td><span class="badge badge-pending">${esc(a.status)}</span></td>
+                <td><div class="btn-row">
+                    <button class="act-btn act-view" onclick="decideModeratorApp(${a.id},'certified')">Certify</button>
+                    <button class="act-btn act-delete" onclick="decideModeratorApp(${a.id},'rejected')">Reject</button>
+                </div></td>
+            </tr>`).join('');
+        if (pending.length === 0) modTbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><div class="empty-state-icon">🛡️</div><div class="empty-state-text">No pending moderator applications</div></div></td></tr>';
+    } catch (err) {
+        modTbody.innerHTML = `<tr><td colspan="5">⚠️ ${esc(err.message)}</td></tr>`;
+    }
+}
+
+window.decideOrganiserApp = async function (id, status) {
+    try {
+        await window.API.organisers.setStatus(id, status);
+        toast(status === 'verified' ? '✅ Organizer verified' : '❌ Application rejected');
+        renderApplications();
+    } catch (err) { toast('⚠️ ' + err.message); }
+};
+
+window.decideModeratorApp = async function (id, status) {
+    try {
+        await window.API.moderatorCertification.setStatus(id, status);
+        toast(status === 'certified' ? '✅ Moderator certified' : '❌ Application rejected');
+        renderApplications();
+    } catch (err) { toast('⚠️ ' + err.message); }
+};
+
 // ── Appeals ───────────────────────────────────────────────────────────────────
 function renderAppeals() {
     const tbody = document.getElementById('appeals-tbody');
@@ -594,7 +656,7 @@ function toast(msg) {
 // ── Init ──────────────────────────────────────────────────────────────────────
 function handleHash() {
     const hash = window.location.hash.substring(1);
-    const valid = ['overview','users','communities','moderation','events-mgmt','appeals','audit','config'];
+    const valid = ['overview','users','communities','moderation','events-mgmt','applications','appeals','audit','config'];
     navTo(hash && valid.includes(hash) ? hash : 'overview');
 }
 
