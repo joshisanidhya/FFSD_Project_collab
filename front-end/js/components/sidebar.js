@@ -10,6 +10,7 @@ const NAV_USER = {
     { id: 'dashboard', name: 'Dashboard', link: 'dashboard.html', icon: '🏠' },
     { id: 'discovery', name: 'Discover', link: 'discovery.html', icon: '🔭' },
     { id: 'events', name: 'Events', link: 'events.html', icon: '📅' },
+    { id: 'pricing', name: 'Pricing', link: 'pricing.html', icon: '💎' },
     { id: 'profile', name: 'Profile', link: 'profile-settings.html', icon: '⚙️' },
   ],
 };
@@ -31,6 +32,16 @@ const NAV_CM = {
   ],
 };
 
+// Organizer creates/manages its own tournaments — distinct from NAV_CM's Event
+// Approval, which is a community_manager/admin review queue for OTHER events.
+const NAV_ORGANIZER = {
+  label: 'Tournaments',
+  sectionId: 'organizer',
+  items: [
+    { id: 'organizer-dash', name: 'Organizer Dashboard', link: 'organizer-dashboard.html', icon: '🏆', badge: 'ORGANIZER' },
+  ],
+};
+
 const NAV_ADMIN = {
   label: 'Admin',
   sectionId: 'admin',
@@ -38,6 +49,7 @@ const NAV_ADMIN = {
     { id: 'admin-dash', name: 'Admin Panel', link: 'admin-dashboard.html', icon: '⚡', badge: 'ADMIN' },
     { id: 'users', name: 'User Management', link: 'admin-dashboard.html#users', icon: '👤' },
     { id: 'communities', name: 'Communities', link: 'admin-dashboard.html#communities', icon: '🏘️' },
+    { id: 'applications', name: 'Applications', link: 'admin-dashboard.html#applications', icon: '📝' },
     { id: 'audit', name: 'Audit Logs', link: 'admin-dashboard.html#audit', icon: '📋' },
   ],
 };
@@ -57,6 +69,7 @@ const ROLE_META = {
   user: { tier: 'User', color: '#34d399', accent: '#34d399', badge: null },
   moderator: { tier: 'Moderator', color: '#818cf8', accent: '#6366f1', badge: 'MODERATOR' },
   community_manager: { tier: 'Community Manager', color: '#06b6d4', accent: '#06b6d4', badge: 'CM' },
+  organizer: { tier: 'Organizer', color: '#22c55e', accent: '#22c55e', badge: 'ORGANIZER' },
   admin: { tier: 'System Admin', color: '#f59e0b', accent: '#f59e0b', badge: 'ADMIN' },
   owner: { tier: 'Owner', color: '#e879f9', accent: '#e879f9', badge: 'OWNER' },
 };
@@ -77,6 +90,7 @@ function _getSections(role) {
   const sections = [NAV_USER];
   if (normalizedRole === 'moderator' || normalizedRole === 'admin') sections.push(NAV_MOD);
   if (normalizedRole === 'community_manager' || normalizedRole === 'admin') sections.push(NAV_CM);
+  if (normalizedRole === 'organizer' || normalizedRole === 'admin') sections.push(NAV_ORGANIZER);
   if (normalizedRole === 'admin') sections.push(NAV_ADMIN);
   return sections;
 }
@@ -85,6 +99,7 @@ function _getActivePage() {
   const page = (window.location.pathname.split('/').pop() || 'dashboard.html').replace('.html', '');
   if (page === 'admin-dashboard') return 'admin-dash';
   if (page === 'owner-dashboard') return 'owner-dash';
+  if (page === 'organizer-dashboard') return 'organizer-dash';
   return page;
 }
 

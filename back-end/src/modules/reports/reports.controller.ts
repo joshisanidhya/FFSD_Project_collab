@@ -31,10 +31,10 @@ import { ReportsService } from './reports.service';
   name: 'x-role',
   required: true,
   description:
-    'RBAC role header. Accepted values: admin | community_manager | moderator | user. ' +
+    'RBAC role header. Accepted values: admin | community_manager | organizer | moderator | user. ' +
     'GET requires admin or moderator. POST requires any valid role. ' +
     'PATCH status requires admin or moderator. DELETE requires admin.',
-  schema: { type: 'string', enum: ['admin', 'community_manager', 'moderator', 'user'] },
+  schema: { type: 'string', enum: ['admin', 'community_manager', 'organizer', 'moderator', 'user'] },
 })
 @Controller('reports')
 export class ReportsController {
@@ -53,7 +53,7 @@ export class ReportsController {
   }
 
   @Post()
-  @Roles(AppRole.USER, AppRole.MODERATOR, AppRole.COMMUNITY_MANAGER, AppRole.ADMIN)
+  @Roles(AppRole.USER, AppRole.ORGANIZER, AppRole.MODERATOR, AppRole.COMMUNITY_MANAGER, AppRole.ADMIN)
   @ApiOperation({
     summary: 'Submit a report',
     description: 'Creates a new report (content or user report). Any authenticated role may submit a report. Status defaults to "pending".',

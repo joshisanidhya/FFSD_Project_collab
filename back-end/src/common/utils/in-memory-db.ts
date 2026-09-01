@@ -58,6 +58,9 @@ export interface EventRecord {
   maxAttendees?: number;
   status?: string;
   createdBy?: string;
+  organiserId?: number; // links to UserRecord.id — used for organizer-plan limit checks (createdBy is just a display string)
+  entryFee?: number; // ₹ per player, doc §16 revenue sharing — 0/undefined means a free event
+  prizePool?: number; // ₹ displayed to players; not auto-derived from entryFee, organiser sets it directly
 }
 
 export interface PostRecord {
@@ -86,6 +89,14 @@ export interface EventRegistrationRecord {
   eventId: number;
   userId: number;
   registeredAt: string;
+  // Registration-time contact details, collected via the register form (see
+  // events.js's registration modal) rather than pulled implicitly from the
+  // user's profile — a tournament registrant's in-game identity/contact info
+  // can differ from their platform account.
+  fullName?: string;
+  contactEmail?: string;
+  phone?: string;
+  inGameId?: string;
 }
 
 export interface AppealRecord {
@@ -143,8 +154,74 @@ export interface PlatformConfigRecord {
   maxCommunitiesPerUser: number;
 }
 
+export type SubscriptionPlan = 'free' | 'plus' | 'ultra_pro';
+
+export interface SubscriptionRecord {
+  id: number;
+  userId: number;
+  plan: SubscriptionPlan;
+  status: 'active' | 'cancelled';
+  startedAt: string;
+}
+
+export type OrganiserStatus = 'pending' | 'verified' | 'rejected';
+export type OrganiserPlan = 'free' | 'premium';
+
+export interface OrganiserRecord {
+  id: number;
+  userId: number;
+  status: OrganiserStatus;
+  plan: OrganiserPlan;
+  experienceNote?: string;
+  appliedAt: string;
+  verifiedAt?: string;
+}
+
+export interface FeaturedEventRecord {
+  id: number;
+  eventId: number;
+  userId: number;
+  startAt: string;
+  endAt: string;
+  status: 'active' | 'expired';
+}
+
+export type PaymentType = 'subscription' | 'organiser_subscription' | 'featured_event' | 'tournament_commission';
+
+export interface PaymentRecord {
+  id: number;
+  userId: number;
+  type: PaymentType;
+  amount: number;
+  description: string;
+  createdAt: string;
+}
+
+export type ModeratorApplicationStatus = 'pending' | 'certified' | 'rejected';
+
+export interface ModeratorApplicationRecord {
+  id: number;
+  userId: number;
+  status: ModeratorApplicationStatus;
+  quizScore: number; // 0–100
+  appliedAt: string;
+  certifiedAt?: string;
+}
+
+export type RatingTargetType = 'organiser' | 'moderator';
+
+export interface RatingRecord {
+  id: number;
+  targetType: RatingTargetType;
+  targetUserId: number;
+  raterId: number;
+  score: number; // 1–5
+  comment?: string;
+  createdAt: string;
+}
+
 const counters = {
-  user: 6,
+  user: 7,
   community: 3,
   membership: 5,
   event: 4,
@@ -155,6 +232,12 @@ const counters = {
   message: 4,
   auditLog: 3,
   notification: 1,
+  subscription: 1,
+  organiser: 2,
+  featuredEvent: 1,
+  payment: 1,
+  moderatorApplication: 1,
+  rating: 1,
 };
 
 let seedDb = {
@@ -164,6 +247,7 @@ let seedDb = {
     { id: 3, username: 'cm01', email: 'cm@gameunity.local', role: AppRole.COMMUNITY_MANAGER, bio: 'Community event manager' },
     { id: 4, username: 'player01', email: 'player@gameunity.local', role: AppRole.USER, bio: 'Loves FPS and RPG games' },
     { id: 5, username: 'sanidhya', email: 'sanidhya@gameunity.local', role: AppRole.OWNER, firstName: 'Sanidhya', lastName: 'Joshi', bio: 'Platform owner' },
+    { id: 6, username: 'org01', email: 'organizer@gameunity.local', role: AppRole.ORGANIZER, bio: 'Certified tournament organizer' },
   ] as UserRecord[],
   communities: [
     {
@@ -341,6 +425,14 @@ let seedDb = {
     { id: 2, action: 'Community Created', actor: 'admin01', target: 'FPS Arena', reason: 'Seed community', createdAt: '2026-05-01T08:10:00.000Z' },
   ] as AuditLogRecord[],
   notifications: [] as NotificationRecord[],
+  subscriptions: [] as SubscriptionRecord[],
+  organisers: [
+    { id: 1, userId: 6, status: 'verified', plan: 'free', appliedAt: '2026-04-01T09:00:00.000Z', verifiedAt: '2026-04-02T09:00:00.000Z' },
+  ] as OrganiserRecord[],
+  featuredEvents: [] as FeaturedEventRecord[],
+  payments: [] as PaymentRecord[],
+  moderatorApplications: [] as ModeratorApplicationRecord[],
+  ratings: [] as RatingRecord[],
   platformConfig: {
     registrationEnabled: true,
     eventApprovalRequired: true,

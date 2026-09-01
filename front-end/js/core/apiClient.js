@@ -100,6 +100,7 @@ const DEFAULT_LOCAL_DATA = {
         { id: 2, name: 'Karmanya', username: 'karmanya', email: 'karmanya@gameunity.com', role: 'moderator' },
         { id: 3, name: 'Anant', username: 'anant', email: 'anant@gameunity.com', role: 'community_manager' },
         { id: 4, name: 'Awadhesh', username: 'awadhesh', email: 'awadhesh@gameunity.com', role: 'user' },
+        { id: 6, name: 'Organizer', username: 'org01', email: 'organizer@gameunity.com', role: 'organizer' },
     ],
     communities: [
         { id: 1, name: 'FPS Arena', description: 'Competitive FPS players and tournaments', ownerId: 4, tags: ['fps', 'esports'], icon: '⚡', category: 'Gaming', slug: 'fps-arena', memberCount: 12400, onlineCount: 842 },
@@ -167,7 +168,7 @@ async function withLocalFallback(path, options, fallback) {
 
 function canUpdateEvents() {
     const role = getRole();
-    return role === 'community_manager' || role === 'admin';
+    return role === 'community_manager' || role === 'organizer' || role === 'admin';
 }
 
 function canDeleteEvents() {
@@ -294,7 +295,7 @@ const API = {
             const created = {
                 id: Date.now(),
                 ...body,
-                status: role === 'community_manager' || role === 'admin' ? (body.status || 'approved') : 'pending',
+                status: role === 'community_manager' || role === 'organizer' || role === 'admin' ? (body.status || 'approved') : 'pending',
                 createdBy: currentUser?.name || currentUser?.username || body.createdBy || 'User'
             };
             if (created.status === 'approved') assertNoLocalEventClash(records, created);
@@ -303,7 +304,7 @@ const API = {
             return created;
         }),
         update:  (id, body)  => withLocalFallback(`/events/${id}`, { method: 'PATCH', body: JSON.stringify(body) }, () => {
-            if (!canUpdateEvents()) throw new Error('Only Community Managers or Admins can update events');
+            if (!canUpdateEvents()) throw new Error('Only Community Managers, Organizers, or Admins can update events');
             const records = localRead('events');
             const item = records.find(record => Number(record.id) === Number(id));
             if (!item) throw new Error('Event not found');
@@ -317,6 +318,26 @@ const API = {
             if (!canDeleteEvents()) throw new Error('Only Admins can delete events');
             localWrite('events', localRead('events').filter(item => Number(item.id) !== Number(id)));
             return { message: `Event ${id} deleted` };
+        }),
+        registrants: (id)    => withLocalFallback(`/events/${id}/registrants`, { method: 'GET' }, () => {
+            const event = localRead('events').find(item => Number(item.id) === Number(id));
+            const users = localRead('users');
+            const registrants = localRead('eventRegistrations')
+                .filter(reg => Number(reg.eventId) === Number(id))
+                .map(reg => {
+                    const user = users.find(u => Number(u.id) === Number(reg.userId));
+                    return {
+                        registrationId: reg.id,
+                        userId: reg.userId,
+                        username: user?.username || `user#${reg.userId}`,
+                        fullName: reg.fullName || '',
+                        email: reg.contactEmail || user?.email || '',
+                        phone: reg.phone || '',
+                        inGameId: reg.inGameId || '',
+                        registeredAt: reg.registeredAt,
+                    };
+                });
+            return { eventId: Number(id), eventTitle: event?.title || '', registrants };
         }),
     },
     posts: {
@@ -468,6 +489,40 @@ const API = {
     },
     dashboard: {
         stats: ()            => API.get('/dashboard/stats'),
+        revenue: ()          => API.get('/dashboard/revenue'),
+    },
+    subscriptions: {
+        status:  (userId)         => API.get(`/subscriptions/status?userId=${encodeURIComponent(userId)}`),
+        upgrade: (userId, plan)   => API.post('/subscriptions/upgrade', { userId, plan }),
+        cancel:  (userId)         => API.post('/subscriptions/cancel', { userId }),
+    },
+    organisers: {
+        getAll:       (status) => API.get(`/organisers${status ? `?status=${encodeURIComponent(status)}` : ''}`),
+        apply:        (userId, experienceNote) => API.post('/organisers/apply', { userId, experienceNote }),
+        setStatus:    (id, status)             => API.patch(`/organisers/${id}`, { status }),
+        profile:      (userId)                 => API.get(`/organisers/profile?userId=${encodeURIComponent(userId)}`),
+        analytics:    (userId)                 => API.get(`/organisers/analytics?userId=${encodeURIComponent(userId)}`),
+        upgradePlan:  (userId, plan)           => API.post('/organisers/subscription/upgrade', { userId, plan }),
+    },
+    featuredEvents: {
+        getAll: ()                                   => API.get('/featured-events'),
+        create: (eventId, userId, durationDays = 7)  => API.post('/featured-events', { eventId, userId, durationDays }),
+        delete: (id)                                 => API.delete(`/featured-events/${id}`),
+    },
+    payments: {
+        history: (userId) => API.get(`/payments/history${userId ? `?userId=${encodeURIComponent(userId)}` : ''}`),
+        summary: ()        => API.get('/payments/summary'),
+    },
+    moderatorCertification: {
+        getAll:    (status)                => API.get(`/moderator-certification${status ? `?status=${encodeURIComponent(status)}` : ''}`),
+        quiz:      ()                      => API.get('/moderator-certification/quiz'),
+        apply:     (userId, answers)       => API.post('/moderator-certification/apply', { userId, answers }),
+        setStatus: (id, status)            => API.patch(`/moderator-certification/${id}`, { status }),
+        status:    (userId)                => API.get(`/moderator-certification/status?userId=${encodeURIComponent(userId)}`),
+    },
+    ratings: {
+        create:    (targetType, targetUserId, raterId, score, comment) => API.post('/ratings', { targetType, targetUserId, raterId, score, comment }),
+        forTarget: (targetType, targetUserId) => API.get(`/ratings?targetType=${encodeURIComponent(targetType)}&targetUserId=${encodeURIComponent(targetUserId)}`),
     },
     notifications: {
         getAll: (userId) => API.get(`/notifications?userId=${encodeURIComponent(userId)}`),

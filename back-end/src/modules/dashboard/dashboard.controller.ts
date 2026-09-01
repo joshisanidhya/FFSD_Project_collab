@@ -16,10 +16,17 @@ export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
   @Get('stats')
-  @Roles(AppRole.ADMIN, AppRole.OWNER, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER)
+  @Roles(AppRole.ADMIN, AppRole.OWNER, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER, AppRole.ORGANIZER)
   @ApiOperation({ summary: 'Get dashboard stats' })
   @ApiOkResponse({ type: DashboardStatsDto })
   getStats() {
     return this.dashboardService.getStats();
+  }
+
+  @Get('revenue')
+  @Roles(AppRole.ADMIN, AppRole.OWNER)
+  @ApiOperation({ summary: 'Get revenue overview', description: 'Owner/Admin only — total/monthly revenue, subscription/organiser/featured-event revenue, premium user counts.' })
+  getRevenue() {
+    return this.dashboardService.getRevenueStats();
   }
 }

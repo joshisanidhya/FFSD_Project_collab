@@ -10,3 +10,14 @@
   .body-area{padding:16px}
   .featured-banner{flex-direction:column;align-items:flex-start;padding:20px}
 }
+
+/* Featured Tournaments carousel (organizer pay-to-promote, doc §18) */
+.featured-events-heading{font-family:"Syne",sans-serif;font-size:14px;font-weight:700;margin-bottom:10px;color:var(--text-2);display:flex;align-items:center;gap:6px}
+.featured-events-row{display:flex;gap:14px;overflow-x:auto;padding-bottom:8px;margin-bottom:24px}
+.featured-events-row::-webkit-scrollbar{height:4px}
+.featured-events-row::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:2px}
+.fe-card{min-width:240px;max-width:240px;background:var(--bg-card);border:1px solid rgba(245,158,11,0.25);border-radius:14px;padding:16px;cursor:pointer;transition:transform 0.2s,border-color 0.2s;flex-shrink:0}
+.fe-card:hover{transform:translateY(-2px);border-color:rgba(245,158,11,0.45)}
+.fe-tag{font-size:9px;font-weight:700;letter-spacing:1px;color:var(--gold);background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.25);border-radius:20px;padding:3px 8px;display:inline-block;margin-bottom:10px}
+.fe-title{font-family:"Syne",sans-serif;font-weight:700;font-size:14.5px;margin-bottom:6px;color:var(--text-1)}
+.fe-meta{font-size:12px;color:var(--text-3);line-height:1.5}

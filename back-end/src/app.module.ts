@@ -11,6 +11,7 @@ import {
   FileUploadValidatorMiddleware,
   AuditRouteMiddleware,
 } from './common/middleware/router-level.middleware';
+import { SubscriptionLimitMiddleware, OrganizerLimitMiddleware } from './common/middleware/feature-gating.middleware';
 import { CommunitiesModule } from './modules/communities/communities.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { EventsModule } from './modules/events/events.module';
@@ -27,6 +28,12 @@ import { MessagesModule } from './modules/messages/messages.module';
 import { PlatformConfigModule } from './modules/platform-config/platform-config.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { PaymentsModule } from './modules/payments/payments.module';
+import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
+import { OrganisersModule } from './modules/organisers/organisers.module';
+import { FeaturedEventsModule } from './modules/featured-events/featured-events.module';
+import { ModeratorCertificationModule } from './modules/moderator-certification/moderator-certification.module';
+import { RatingsModule } from './modules/ratings/ratings.module';
 import { PlatformConfigController } from './modules/platform-config/platform-config.controller';
 import { UploadController } from './modules/upload/upload.controller';
 import { ReportsController } from './modules/reports/reports.controller';
@@ -54,6 +61,12 @@ import { AppealsController } from './modules/appeals/appeals.controller';
     PlatformConfigModule,
     UploadModule,
     NotificationsModule,
+    PaymentsModule,
+    SubscriptionsModule,
+    OrganisersModule,
+    FeaturedEventsModule,
+    ModeratorCertificationModule,
+    RatingsModule,
   ],
   providers: [
     FileLoggerService,
@@ -86,5 +99,14 @@ export class AppModule implements NestModule {
     // Router-level Middleware for Governance/Audit routes.
     // Tracks all access to moderation and appeal routes for audit purposes.
     consumer.apply(AuditRouteMiddleware).forRoutes(ReportsController, AppealsController);
+
+    // Router-level Middleware for revenue-model feature gating (doc §20).
+    // Scoped to POST only — GET/PATCH/DELETE on these controllers are untouched.
+    consumer
+      .apply(SubscriptionLimitMiddleware)
+      .forRoutes({ path: 'communities', method: RequestMethod.POST });
+    consumer
+      .apply(OrganizerLimitMiddleware)
+      .forRoutes({ path: 'events', method: RequestMethod.POST });
   }
 }
