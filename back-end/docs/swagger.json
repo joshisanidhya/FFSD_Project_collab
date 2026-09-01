@@ -832,11 +832,11 @@
         ]
       }
     },
-    "/api/events/{id}/export-attendees": {
+    "/api/events/{id}/registrants": {
       "get": {
-        "operationId": "EventsController_exportAttendees",
-        "summary": "Export an event's attendee list as CSV",
-        "description": "Downloads registration ID, username, email, and registration time for every registrant. Requires community_manager, organizer, or admin.",
+        "operationId": "EventsController_getRegistrants",
+        "summary": "List an event's registrants",
+        "description": "Returns every registration for this event joined with the registrant's username and the contact details given at registration time. Requires community_manager, organizer, or admin.",
         "parameters": [
           {
             "name": "x-role",
@@ -866,10 +866,10 @@
         ],
         "responses": {
           "200": {
-            "description": "CSV file (text/csv)"
+            "description": "Event title plus an array of registrants"
           },
           "403": {
-            "description": "Only community_manager, organizer, or admin can export attendees"
+            "description": "Only community_manager, organizer, or admin can view registrants"
           },
           "404": {
             "description": "Event not found"

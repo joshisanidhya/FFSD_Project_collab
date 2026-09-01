@@ -18,7 +18,14 @@ export class EventRegistrationsService {
     );
   }
 
-  create(payload: { eventId: number; userId: number }): EventRegistrationRecord {
+  create(payload: {
+    eventId: number;
+    userId: number;
+    fullName?: string;
+    contactEmail?: string;
+    phone?: string;
+    inGameId?: string;
+  }): EventRegistrationRecord {
     const event = db.events.find((item) => item.id === payload.eventId);
     if (!event) throw new BadRequestException('eventId must reference an existing event');
     if (!db.users.some((item) => item.id === payload.userId)) {
@@ -29,11 +36,15 @@ export class EventRegistrationsService {
     if (event.maxAttendees && (event.attendees || 0) >= event.maxAttendees) {
       throw new BadRequestException('Event is full');
     }
-    const created = {
+    const created: EventRegistrationRecord = {
       id: nextId('eventRegistration'),
       eventId: payload.eventId,
       userId: payload.userId,
       registeredAt: new Date().toISOString(),
+      fullName: payload.fullName,
+      contactEmail: payload.contactEmail,
+      phone: payload.phone,
+      inGameId: payload.inGameId,
     };
     db.eventRegistrations.push(created);
     event.attendees = (event.attendees || 0) + 1;

@@ -46,6 +46,7 @@ const PAGE_ACCESS = {
     'chat.html':              [ROLES.USER, ROLES.MODERATOR, ROLES.COMMUNITY_MANAGER, ROLES.ORGANIZER, ROLES.ADMIN],
     'owner-dashboard.html':   [ROLES.OWNER, ROLES.ADMIN],
     'organizer-dashboard.html': [ROLES.ORGANIZER, ROLES.ADMIN],
+    'event-registrants.html': [ROLES.ORGANIZER, ROLES.COMMUNITY_MANAGER, ROLES.ADMIN],
     'pricing.html':           [ROLES.USER, ROLES.MODERATOR, ROLES.COMMUNITY_MANAGER, ROLES.ORGANIZER, ROLES.ADMIN],
 };
 

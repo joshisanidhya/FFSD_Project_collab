@@ -294,41 +294,127 @@ function generateRegCard(ev, index) {
 }
 
 // ── Actions ───────────────────────────────────────────────────────────────────
+// Registering asks for the registrant's details first (registerModal in
+// events.html); unregistering needs no form and stays a direct toggle.
 window.handleRegistrationToggle = async function (eventId) {
-    let registrations = JSON.parse(localStorage.getItem('nexus_registered_events') || '[]');
+    const registrations = JSON.parse(localStorage.getItem('nexus_registered_events') || '[]');
     const id = String(eventId);
     const isRegistered = registrations.includes(id);
     const event = _events.find(e => String(e.id) === id);
     if (!event) return;
-    const userId = await resolveCurrentUserId();
 
     if (isRegistered) {
-        const registration = _eventRegistrations.find(item => String(item.eventId) === id && Number(item.userId) === Number(userId));
-        if (registration) {
-            await window.API.eventRegistrations.delete(registration.id);
-            _eventRegistrations = _eventRegistrations.filter(item => item.id !== registration.id);
-        }
-        event.attendees = Math.max(0, (event.attendees || 0) - 1);
-        registrations = registrations.filter(r => r !== id);
-        if (window.toast) window.toast(`Unregistered from ${event.title}`);
+        await unregisterFromEvent(event);
     } else {
         if (event.maxAttendees && event.attendees >= event.maxAttendees) {
             if (window.toast) window.toast('Cannot register — Event is full!', 'error');
             return;
         }
-        const created = await window.API.eventRegistrations.create({ eventId: Number(eventId), userId });
+        openRegisterModal(event);
+    }
+};
+
+async function unregisterFromEvent(event) {
+    let registrations = JSON.parse(localStorage.getItem('nexus_registered_events') || '[]');
+    const id = String(event.id);
+    const userId = await resolveCurrentUserId();
+
+    const registration = _eventRegistrations.find(item => String(item.eventId) === id && Number(item.userId) === Number(userId));
+    if (registration) {
+        await window.API.eventRegistrations.delete(registration.id);
+        _eventRegistrations = _eventRegistrations.filter(item => item.id !== registration.id);
+    }
+    event.attendees = Math.max(0, (event.attendees || 0) - 1);
+    registrations = registrations.filter(r => r !== id);
+    if (window.toast) window.toast(`Unregistered from ${event.title}`);
+
+    writeStoredEvents(_events);
+    try {
+        const refreshed = await window.API.events.getOne(event.id);
+        Object.assign(event, refreshed);
+    } catch (err) {}
+    localStorage.setItem('nexus_registered_events', JSON.stringify(registrations));
+    renderAll();
+}
+
+// ── Registration details modal ──────────────────────────────────────────────
+let _pendingRegistrationEvent = null;
+
+function openRegisterModal(event) {
+    _pendingRegistrationEvent = event;
+    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+
+    document.getElementById('regModalEventTitle').textContent = event.title || 'this event';
+    document.getElementById('regFullName').value = user?.fullName || user?.name || '';
+    document.getElementById('regEmail').value = user?.email || '';
+    document.getElementById('regPhone').value = user?.phone || '';
+    document.getElementById('regInGameId').value = user?.username || '';
+    document.querySelectorAll('#registerModal .error-msg').forEach(e => { e.textContent = ''; e.classList.remove('show'); });
+
+    document.getElementById('registerModal')?.classList.remove('hidden');
+}
+
+window.closeRegisterModal = function () {
+    document.getElementById('registerModal')?.classList.add('hidden');
+    _pendingRegistrationEvent = null;
+};
+
+window.submitEventRegistration = async function () {
+    const event = _pendingRegistrationEvent;
+    if (!event) return;
+
+    const fullNameEl = document.getElementById('regFullName');
+    const emailEl    = document.getElementById('regEmail');
+    const phoneEl    = document.getElementById('regPhone');
+    const inGameIdEl = document.getElementById('regInGameId');
+
+    const fullName = fullNameEl.value.trim();
+    const email    = emailEl.value.trim();
+    const phone    = phoneEl.value.trim();
+    const inGameId = inGameIdEl.value.trim();
+
+    let isValid = true;
+    const showError = (errId, msg) => {
+        const errEl = document.getElementById(errId);
+        if (errEl) { errEl.textContent = msg; errEl.classList.add('show'); }
+        isValid = false;
+    };
+    document.querySelectorAll('#registerModal .error-msg').forEach(e => { e.textContent = ''; e.classList.remove('show'); });
+
+    if (!fullName) showError('err-regFullName', 'Full name is required');
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) showError('err-regEmail', 'A valid email is required');
+    if (!phone || phone.replace(/\D/g, '').length < 7) showError('err-regPhone', 'A valid phone number is required');
+    if (!isValid) return;
+
+    const registrations = JSON.parse(localStorage.getItem('nexus_registered_events') || '[]');
+    const id = String(event.id);
+    const userId = await resolveCurrentUserId();
+
+    try {
+        const created = await window.API.eventRegistrations.create({
+            eventId: Number(event.id),
+            userId,
+            fullName,
+            contactEmail: email,
+            phone,
+            inGameId,
+        });
         _eventRegistrations.push(created);
         event.attendees = (event.attendees || 0) + 1;
         registrations.push(id);
         if (window.toast) window.toast(`Registered for ${event.title}! 🎟`);
+    } catch (err) {
+        if (window.toast) window.toast('Could not register: ' + err.message, 'error');
+        return;
     }
 
     writeStoredEvents(_events);
     try {
-        const refreshed = await window.API.events.getOne(eventId);
+        const refreshed = await window.API.events.getOne(event.id);
         Object.assign(event, refreshed);
     } catch (err) {}
     localStorage.setItem('nexus_registered_events', JSON.stringify(registrations));
+    window.closeRegisterModal();
     renderAll();
 };
 

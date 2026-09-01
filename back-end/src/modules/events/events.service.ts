@@ -88,32 +88,28 @@ export class EventsService {
   }
 
   /**
-   * Builds a CSV of every registration for one event, joined with the
-   * registrant's username/email — the "export attendees" action used by
-   * organizers/community managers/admins. Previously done client-side in
-   * organizer-dashboard.js; this is the real backend equivalent.
+   * Every registration for one event, joined with the registrant's platform
+   * username plus the contact details they gave at registration time — powers
+   * the organizer's "View Registrants" page (event-registrants.html).
    */
-  exportAttendeesCsv(id: number): { filename: string; csv: string } {
+  getRegistrants(id: number) {
     const event = this.findOne(id);
     const registrations = db.eventRegistrations.filter((item) => item.eventId === id);
 
-    const escapeCsv = (value: string): string => {
-      if (/[",\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
-      return value;
-    };
-
-    const rows = registrations.map((reg) => {
+    const registrants = registrations.map((reg) => {
       const user = db.users.find((item) => item.id === reg.userId);
-      return [
-        String(reg.id),
-        user?.username || `user#${reg.userId}`,
-        user?.email || '',
-        reg.registeredAt,
-      ].map(escapeCsv).join(',');
+      return {
+        registrationId: reg.id,
+        userId: reg.userId,
+        username: user?.username || `user#${reg.userId}`,
+        fullName: reg.fullName || '',
+        email: reg.contactEmail || user?.email || '',
+        phone: reg.phone || '',
+        inGameId: reg.inGameId || '',
+        registeredAt: reg.registeredAt,
+      };
     });
 
-    const csv = ['Registration ID,Username,Email,Registered At', ...rows].join('\n');
-    const safeTitle = event.title.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
-    return { filename: `${safeTitle || 'event'}-attendees.csv`, csv };
+    return { eventId: event.id, eventTitle: event.title, registrants };
   }
 }

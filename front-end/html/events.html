@@ -235,6 +235,39 @@
       </div>
     </div>
   </div>
+
+  <!-- Registration details modal — collected before an event registration is confirmed -->
+  <div id="registerModal" class="event-modal hidden" onclick="if(event.target===this)closeRegisterModal()">
+    <div class="event-modal-content">
+      <button class="event-modal-close" onclick="closeRegisterModal()" aria-label="Close registration form">×</button>
+      <h2>Register for <span id="regModalEventTitle"></span></h2>
+      <p style="color:var(--text-3,#9ca3af);font-size:13px;margin-top:-8px;">We need a few details before confirming your spot.</p>
+      <div class="field">
+        <label>Full Name *</label>
+        <input id="regFullName" type="text" placeholder="Your full name">
+        <div class="error-msg" id="err-regFullName"></div>
+      </div>
+      <div class="field">
+        <label>Email *</label>
+        <input id="regEmail" type="email" placeholder="you@example.com">
+        <div class="error-msg" id="err-regEmail"></div>
+      </div>
+      <div class="field">
+        <label>Phone Number *</label>
+        <input id="regPhone" type="tel" placeholder="e.g. 9876543210">
+        <div class="error-msg" id="err-regPhone"></div>
+      </div>
+      <div class="field">
+        <label>In-Game ID / Username (optional)</label>
+        <input id="regInGameId" type="text" placeholder="Your in-game handle">
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn-draft" onclick="closeRegisterModal()">Cancel</button>
+        <button type="button" class="btn-publish" onclick="submitEventRegistration()">Confirm Registration</button>
+      </div>
+    </div>
+  </div>
+
   <script src="../js/core/auth.js"></script>
   <script src="../js/core/utils.js"></script>
   <script src="../js/core/apiClient.js"></script>

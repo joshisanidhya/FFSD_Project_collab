@@ -89,6 +89,14 @@ export interface EventRegistrationRecord {
   eventId: number;
   userId: number;
   registeredAt: string;
+  // Registration-time contact details, collected via the register form (see
+  // events.js's registration modal) rather than pulled implicitly from the
+  // user's profile — a tournament registrant's in-game identity/contact info
+  // can differ from their platform account.
+  fullName?: string;
+  contactEmail?: string;
+  phone?: string;
+  inGameId?: string;
 }
 
 export interface AppealRecord {

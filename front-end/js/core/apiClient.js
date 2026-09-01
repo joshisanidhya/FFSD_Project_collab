@@ -319,6 +319,26 @@ const API = {
             localWrite('events', localRead('events').filter(item => Number(item.id) !== Number(id)));
             return { message: `Event ${id} deleted` };
         }),
+        registrants: (id)    => withLocalFallback(`/events/${id}/registrants`, { method: 'GET' }, () => {
+            const event = localRead('events').find(item => Number(item.id) === Number(id));
+            const users = localRead('users');
+            const registrants = localRead('eventRegistrations')
+                .filter(reg => Number(reg.eventId) === Number(id))
+                .map(reg => {
+                    const user = users.find(u => Number(u.id) === Number(reg.userId));
+                    return {
+                        registrationId: reg.id,
+                        userId: reg.userId,
+                        username: user?.username || `user#${reg.userId}`,
+                        fullName: reg.fullName || '',
+                        email: reg.contactEmail || user?.email || '',
+                        phone: reg.phone || '',
+                        inGameId: reg.inGameId || '',
+                        registeredAt: reg.registeredAt,
+                    };
+                });
+            return { eventId: Number(id), eventTitle: event?.title || '', registrants };
+        }),
     },
     posts: {
         getAll:  ()          => API.get('/posts'),

@@ -2,7 +2,7 @@
  * Gameunity — Organizer Dashboard
  * Certified Organizer view: create/manage tournaments this organizer hosts
  * (events whose createdBy === this user's username), track registrations,
- * and export attendee CSVs. All data from live backend API.
+ * and view each tournament's registrant list. All data from live backend API.
  *
  * Scope note: this is deliberately narrower than the System Admin's Events
  * page — an organizer manages ONLY the tournaments they created, not every
@@ -167,7 +167,7 @@ function renderTable() {
             <td><div class="btn-row">
                 <button class="act-btn act-edit" onclick="openEditModal(${e.id})">Edit</button>
                 ${e.status === 'approved' ? `<button class="act-btn act-view" onclick="promoteEvent(${e.id})">Promote</button>` : ''}
-                <button class="act-btn act-view" onclick="exportRegistrations(${e.id})">Export CSV</button>
+                <button class="act-btn act-view" onclick="viewRegistrants(${e.id})">Registrants</button>
                 <button class="act-btn act-delete" onclick="deleteMyEvent(${e.id})">Delete</button>
             </div></td>
         </tr>`).join('');
@@ -283,36 +283,10 @@ window.deleteMyEvent = async function (id) {
     }
 };
 
-// ── CSV export ───────────────────────────────────────────────────────────────
-// Backed by the real GET /events/:id/export-attendees endpoint (server builds
-// and joins the CSV) rather than assembling it client-side.
-window.exportRegistrations = async function (eventId) {
-    try {
-        const res = await fetch(`${API_BASE}/events/${eventId}/export-attendees`, {
-            headers: { 'x-role': getRole() },
-        });
-        if (!res.ok) {
-            let msg = `HTTP ${res.status}`;
-            try { msg = (await res.json()).message || msg; } catch (_) {}
-            throw new Error(Array.isArray(msg) ? msg.join(', ') : msg);
-        }
-        const disposition = res.headers.get('Content-Disposition') || '';
-        const match = disposition.match(/filename="?([^"]+)"?/);
-        const filename = match ? match[1] : `event-${eventId}-attendees.csv`;
-
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-        toast('📄 Attendee list exported');
-    } catch (err) {
-        toast('⚠️ ' + err.message);
-    }
+// ── Registrants ──────────────────────────────────────────────────────────────
+// Opens the dedicated registrants page (replaces the earlier CSV export).
+window.viewRegistrants = function (eventId) {
+    window.location.href = `event-registrants.html?eventId=${eventId}`;
 };
 
 // ── Utilities ──────────────────────────────────────────────────────────────
