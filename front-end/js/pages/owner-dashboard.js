@@ -27,4 +27,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         set('ow-health-backend', '⚠️ Unreachable');
         if (window.toast) window.toast('⚠️ Could not reach the backend.');
     }
+
+    try {
+        const revenue = await window.API.dashboard.revenue();
+        set('ow-rev-total', `₹${revenue.totalRevenue.toLocaleString()}`);
+        set('ow-rev-monthly', `₹${revenue.monthlyRevenue.toLocaleString()}`);
+        set('ow-rev-subs', `₹${revenue.subscriptionRevenue.toLocaleString()}`);
+        set('ow-rev-organiser', `₹${revenue.organiserRevenue.toLocaleString()}`);
+        set('ow-rev-featured', `₹${revenue.featuredEventRevenue.toLocaleString()}`);
+        set('ow-rev-premium-users', revenue.premiumUsers);
+        set('ow-rev-verified-organisers', revenue.verifiedOrganisers);
+        set('ow-rev-pending-organisers', revenue.pendingOrganiserApplications);
+    } catch (err) {
+        console.error('[OwnerDashboard] Could not load revenue stats:', err.message);
+    }
 });

@@ -494,4 +494,69 @@ document.addEventListener("DOMContentLoaded", () => {
     } finally {
         hideLoader();
     }
+
+    loadMembershipData();
 });
+
+// --- 7. MEMBERSHIP (Subscription plan + Organizer application) ---
+const PLAN_LABELS = { free: 'Free', plus: 'Plus', ultra_pro: 'Ultra Pro' };
+
+async function loadMembershipData() {
+    const user = window.getCurrentUser();
+    if (!user?.id || !window.API) return;
+
+    try {
+        const status = await window.API.subscriptions.status(user.id);
+        const nameEl = document.getElementById('ps-plan-name');
+        const subEl = document.getElementById('ps-plan-sub');
+        if (nameEl) nameEl.textContent = PLAN_LABELS[status.plan] || status.plan;
+        if (subEl) subEl.textContent = status.plan === 'free' ? 'Upgrade for more communities, moderators, and premium features.' : 'Thanks for being a premium member!';
+    } catch (err) {
+        console.error('[Profile] Could not load subscription status:', err.message);
+    }
+
+    const role = typeof normalizeRole === 'function' ? normalizeRole(user.role) : user.role;
+    const statusEl = document.getElementById('ps-organizer-status');
+    const btnEl = document.getElementById('ps-organizer-apply-btn');
+    if (!statusEl || !btnEl) return;
+
+    if (role === 'organizer') {
+        statusEl.textContent = "✅ You're a certified Organizer.";
+        btnEl.textContent = 'Go to Organizer Dashboard';
+        btnEl.onclick = () => { window.location.href = 'organizer-dashboard.html'; };
+        return;
+    }
+    if (role === 'admin' || role === 'owner') {
+        statusEl.textContent = 'Organizer applications are for gamer accounts.';
+        btnEl.style.display = 'none';
+        return;
+    }
+
+    try {
+        const profile = await window.API.organisers.profile(user.id);
+        if (profile.status === 'pending') {
+            statusEl.textContent = '⏳ Your application is pending admin review.';
+            btnEl.style.display = 'none';
+        } else if (profile.status === 'rejected') {
+            statusEl.textContent = '❌ Your last application was rejected. You can re-apply.';
+            btnEl.textContent = 'Re-apply';
+        } else {
+            statusEl.textContent = "You haven't applied yet.";
+            btnEl.textContent = 'Apply Now';
+        }
+    } catch (err) {
+        console.error('[Profile] Could not load organiser status:', err.message);
+    }
+}
+
+window.applyAsOrganizer = async function () {
+    const user = window.getCurrentUser();
+    if (!user?.id) { if (window.toast) window.toast('⚠️ No signed-in user id — please log back in'); return; }
+    try {
+        await window.API.organisers.apply(user.id);
+        if (window.toast) window.toast('✅ Application submitted — pending admin review');
+        loadMembershipData();
+    } catch (err) {
+        if (window.toast) window.toast('⚠️ ' + err.message);
+    }
+};

@@ -33,6 +33,7 @@ export class RolesGuard implements CanActivate {
     if (role === 'community-manager' || role === 'community manager' || role === 'cm') {
       role = 'community_manager';
     }
+    if (role === 'organiser') role = 'organizer'; // UK spelling alias
 
     if (!role || !ALL_ROLES.includes(role)) {
       throw new ForbiddenException('Missing or invalid x-role header');

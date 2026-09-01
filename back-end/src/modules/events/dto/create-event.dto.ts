@@ -64,6 +64,13 @@ export class CreateEventDto {
   @IsString()
   createdBy?: string;
 
+  @ApiPropertyOptional({ example: 6, description: "Links to the organiser's user id — used for organizer-plan limit checks (createdBy is just a display string)" })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  organiserId?: number;
+
   @ApiPropertyOptional({ example: 'Esports' })
   @IsOptional()
   @IsString()

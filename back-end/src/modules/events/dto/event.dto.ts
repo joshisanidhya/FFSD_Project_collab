@@ -33,5 +33,8 @@ export class EventDto {
 
   @ApiPropertyOptional({ example: 'Rajat' })
   createdBy?: string;
+
+  @ApiPropertyOptional({ example: 6 })
+  organiserId?: number;
 }
 

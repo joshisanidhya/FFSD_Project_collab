@@ -34,7 +34,7 @@ export class MembershipsController {
   constructor(private readonly membershipsService: MembershipsService) {}
 
   @Get()
-  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER)
+  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER, AppRole.ORGANIZER)
   @ApiOperation({ summary: 'List all memberships, optionally filtered by communityId or userId' })
   @ApiQuery({ name: 'communityId', required: false, type: Number })
   @ApiQuery({ name: 'userId', required: false, type: Number })
@@ -49,7 +49,7 @@ export class MembershipsController {
   }
 
   @Post()
-  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER)
+  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER, AppRole.ORGANIZER)
   @ApiOperation({ summary: 'Join a community (create membership)' })
   @ApiBody({ type: CreateMembershipDto })
   @ApiCreatedResponse({ schema: { example: { id: 5, userId: 3, communityId: 1, joinedAt: '2026-05-02T12:00:00.000Z' } } })
@@ -58,7 +58,7 @@ export class MembershipsController {
   }
 
   @Delete(':id')
-  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER)
+  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER, AppRole.ORGANIZER)
   @ApiOperation({ summary: 'Leave a community (delete membership by id)' })
   @ApiParam({ name: 'id', type: Number })
   @ApiOkResponse({ schema: { example: { message: 'Membership 5 removed' } } })

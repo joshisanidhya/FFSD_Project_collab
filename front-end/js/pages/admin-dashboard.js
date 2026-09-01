@@ -185,6 +185,7 @@ window.openEditUserModal = function (userId) {
             <option value="user" ${user.role==='user'?'selected':''}>User</option>
             <option value="moderator" ${user.role==='moderator'?'selected':''}>Moderator</option>
             <option value="community_manager" ${user.role==='community_manager'?'selected':''}>Community Manager</option>
+            <option value="organizer" ${user.role==='organizer'?'selected':''}>Organizer</option>
             <option value="admin" ${user.role==='admin'?'selected':''}>Admin</option>
             <option value="owner" ${user.role==='owner'?'selected':''}>Owner (statistics only)</option>
         </select></div>

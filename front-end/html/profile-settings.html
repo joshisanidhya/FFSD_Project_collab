@@ -62,6 +62,9 @@
             <div class="ln-item" onclick="switchView('account', this)">
               <span class="ln-icon">🔐</span> Account &amp; Security
             </div>
+            <div class="ln-item" onclick="switchView('membership', this)">
+              <span class="ln-icon">💎</span> Membership
+            </div>
             <div class="ln-item" onclick="switchView('privacy', this)">
               <span class="ln-icon">🔒</span> Privacy
             </div>
@@ -168,6 +171,29 @@
                   <div class="dot" style="background: var(--text-3)"></div>
                   Invisible
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="view" id="view-membership">
+            <div class="settings-card">
+              <div class="card-title">💎 Subscription Plan</div>
+              <div class="card-sub">Your current Gameunity plan and what it unlocks.</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding:14px 16px;background:rgba(255,255,255,0.03);border-radius:10px;">
+                <div>
+                  <div id="ps-plan-name" style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;">—</div>
+                  <div id="ps-plan-sub" style="font-size:12px;color:var(--text-3);margin-top:2px;">Loading…</div>
+                </div>
+                <div class="btn-sm accent" onclick="window.location.href='pricing.html'">Manage Plan</div>
+              </div>
+            </div>
+
+            <div class="settings-card">
+              <div class="card-title">🏆 Become an Organizer</div>
+              <div class="card-sub">Apply for Verified Organizer status to host and manage your own tournaments.</div>
+              <div id="ps-organizer-block" style="margin-top:12px;padding:14px 16px;background:rgba(255,255,255,0.03);border-radius:10px;">
+                <div id="ps-organizer-status" style="font-size:13px;color:var(--text-2);margin-bottom:10px;">Loading…</div>
+                <div class="btn-sm accent" id="ps-organizer-apply-btn" onclick="applyAsOrganizer()">Apply Now</div>
               </div>
             </div>
           </div>

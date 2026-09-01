@@ -11,7 +11,7 @@ export class PlatformConfigController {
   constructor(private readonly service: PlatformConfigService) {}
 
   @Get()
-  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER)
+  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER, AppRole.ORGANIZER)
   findOne() {
     return this.service.findOne();
   }

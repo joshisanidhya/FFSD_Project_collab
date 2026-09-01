@@ -33,16 +33,16 @@ import { EventsService } from './events.service';
   name: 'x-role',
   required: true,
   description:
-    'RBAC role header. Accepted values: admin | community_manager | moderator | user. ' +
-    'GET / POST require any valid role. PATCH requires community_manager or admin. DELETE requires admin.',
-  schema: { type: 'string', enum: ['admin', 'community_manager', 'moderator', 'user'] },
+    'RBAC role header. Accepted values: admin | community_manager | organizer | moderator | user. ' +
+    'GET / POST require any valid role. PATCH requires community_manager, organizer, or admin. DELETE requires admin.',
+  schema: { type: 'string', enum: ['admin', 'community_manager', 'organizer', 'moderator', 'user'] },
 })
 @Controller('events')
 export class EventsController {
   constructor(private readonly eventsService: EventsService) {}
 
   @Get()
-  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER)
+  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER, AppRole.ORGANIZER)
   @ApiOperation({
     summary: 'List all events',
     description: 'Returns all events. Public clients should render only approved events.',
@@ -61,7 +61,7 @@ export class EventsController {
   }
 
   @Get(':id')
-  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER)
+  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER, AppRole.ORGANIZER)
   @ApiOperation({
     summary: 'Get a single event by ID',
     description: 'Fetches one event by its numeric ID.',
@@ -75,7 +75,7 @@ export class EventsController {
   }
 
   @Post()
-  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER)
+  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER, AppRole.ORGANIZER)
   @ApiOperation({
     summary: 'Create an event',
     description: 'Creates an event request. Users submit pending events; Community Managers/Admins can publish approved events.',
@@ -88,16 +88,16 @@ export class EventsController {
   }
 
   @Patch(':id')
-  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER)
+  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.ORGANIZER)
   @ApiOperation({
     summary: 'Update an event',
-    description: 'Partially updates an event and supports approve/reject status changes. Requires community_manager or admin.',
+    description: 'Partially updates an event and supports approve/reject status changes. Requires community_manager, organizer, or admin.',
   })
   @ApiParam({ name: 'id', type: Number, description: 'Numeric event ID to update' })
   @ApiBody({ type: UpdateEventDto, description: 'Fields to update (all optional)' })
   @ApiOkResponse({ type: EventDto, description: 'The updated event record' })
   @ApiNotFoundResponse({ description: 'Event not found' })
-  @ApiForbiddenResponse({ description: 'Only community_manager or admin can update events' })
+  @ApiForbiddenResponse({ description: 'Only community_manager, organizer, or admin can update events' })
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() payload: UpdateEventDto,

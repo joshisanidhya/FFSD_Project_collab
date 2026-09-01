@@ -12,7 +12,7 @@ export class NotificationsController {
   constructor(private readonly service: NotificationsService) {}
 
   @Get()
-  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER)
+  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER, AppRole.ORGANIZER)
   @ApiOperation({ summary: 'List notifications for a user, newest first' })
   @ApiQuery({ name: 'userId', required: true, type: Number })
   @ApiOkResponse({ description: 'Array of notifications for the given userId' })
@@ -21,14 +21,14 @@ export class NotificationsController {
   }
 
   @Patch('read-all')
-  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER)
+  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER, AppRole.ORGANIZER)
   @ApiOperation({ summary: 'Mark every notification for a user as read' })
   markAllRead(@Body() payload: MarkAllReadDto) {
     return this.service.markAllRead(payload.userId);
   }
 
   @Patch(':id')
-  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER)
+  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER, AppRole.ORGANIZER)
   @ApiOperation({ summary: 'Mark a single notification read/unread' })
   update(@Param('id', ParseIntPipe) id: number, @Body() payload: UpdateNotificationDto) {
     return this.service.markRead(id, payload.read);

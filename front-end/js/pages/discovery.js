@@ -210,10 +210,41 @@ document.addEventListener('click', e => {
     }
 });
 
+// --- Featured Tournaments carousel (organizer pay-to-promote, doc §18) ---
+async function loadAndRenderFeaturedEvents() {
+    const container = document.getElementById('featuredEventsSection');
+    if (!container) return;
+    try {
+        const featured = await window.API.featuredEvents.getAll();
+        if (!Array.isArray(featured) || featured.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+        container.innerHTML = `
+            <div class="featured-events-heading">🏆 Featured Tournaments</div>
+            <div class="featured-events-row">
+                ${featured.map(item => {
+                    const e = item.event || {};
+                    return `
+                    <div class="fe-card" onclick="window.location.href='events.html'">
+                        <span class="fe-tag">FEATURED</span>
+                        <div class="fe-title">${escapeHTML(e.title || 'Tournament')}</div>
+                        <div class="fe-meta">📅 ${escapeHTML(e.date || '')}${e.time ? ' · ' + escapeHTML(e.time) : ''}</div>
+                        <div class="fe-meta">👥 ${e.attendees || 0}/${e.maxAttendees || '∞'}</div>
+                    </div>`;
+                }).join('')}
+            </div>`;
+    } catch (err) {
+        console.warn('[Discovery] Featured events unavailable:', err.message);
+        container.innerHTML = '';
+    }
+}
+
 // --- 5. STARTUP ---
 document.addEventListener('DOMContentLoaded', async () => {
     await loadCommunities();
     renderCommunities();
+    loadAndRenderFeaturedEvents();
 
     window.addEventListener('keydown', e => {
         if ((e.metaKey || e.ctrlKey) && e.key === 'k') {

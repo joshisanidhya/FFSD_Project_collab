@@ -34,7 +34,7 @@ function isApprovedEvent(event) {
 function canApproveEvents() {
     const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
     const role = typeof normalizeRole === 'function' ? normalizeRole(user?.role) : user?.role;
-    return role === 'community_manager' || role === 'manager' || role === 'admin';
+    return role === 'community_manager' || role === 'manager' || role === 'organizer' || role === 'admin';
 }
 
 function isSystemAdmin() {

@@ -19,13 +19,13 @@ export class AppealsController {
   }
 
   @Post()
-  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER)
+  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER, AppRole.ORGANIZER)
   create(@Body() payload: CreateAppealDto) {
     return this.service.create(payload);
   }
 
   @Post(':id/evidence')
-  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER)
+  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER, AppRole.ORGANIZER)
   addEvidence(@Param('id', ParseIntPipe) id: number, @Body() payload: AddAppealEvidenceDto) {
     return this.service.addEvidence(id, payload);
   }

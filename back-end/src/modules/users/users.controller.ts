@@ -31,16 +31,16 @@ import { UserDto } from './dto/user.dto';
   name: 'x-role',
   required: true,
   description:
-    'RBAC role header. Accepted values: admin | community_manager | moderator | user. ' +
+    'RBAC role header. Accepted values: admin | community_manager | organizer | moderator | user. ' +
     'GET endpoints require any valid role. POST / PATCH / DELETE require admin.',
-  schema: { type: 'string', enum: ['admin', 'community_manager', 'moderator', 'user'] },
+  schema: { type: 'string', enum: ['admin', 'community_manager', 'organizer', 'moderator', 'user'] },
 })
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
-  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER)
+  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER, AppRole.ORGANIZER)
   @ApiOperation({
     summary: 'List all users',
     description: 'Returns every user in the in-memory store. Accessible by any valid role.',
@@ -52,7 +52,7 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER)
+  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER, AppRole.ORGANIZER)
   @ApiOperation({
     summary: 'Get a single user by ID',
     description: 'Fetches one user record by their numeric ID.',
@@ -79,7 +79,7 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER)
+  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER, AppRole.ORGANIZER)
   @ApiOperation({
     summary: 'Update an existing user',
     description:
