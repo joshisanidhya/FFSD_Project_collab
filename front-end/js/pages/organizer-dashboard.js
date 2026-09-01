@@ -284,42 +284,36 @@ window.deleteMyEvent = async function (id) {
 };
 
 // ── CSV export ───────────────────────────────────────────────────────────────
+// Backed by the real GET /events/:id/export-attendees endpoint (server builds
+// and joins the CSV) rather than assembling it client-side.
 window.exportRegistrations = async function (eventId) {
-    const event = _myEvents.find(e => e.id === eventId);
     try {
-        const [regs, users] = await Promise.all([
-            window.API.eventRegistrations.getAll({ eventId }),
-            window.API.users.getAll().catch(() => []),
-        ]);
-        const usersById = {};
-        (users || []).forEach(u => { usersById[u.id] = u; });
-
-        const rows = [['User ID', 'Username', 'Email', 'Registered At']];
-        (regs || []).forEach(r => {
-            const u = usersById[r.userId] || {};
-            rows.push([r.userId, u.username || '', u.email || '', r.registeredAt || '']);
+        const res = await fetch(`${API_BASE}/events/${eventId}/export-attendees`, {
+            headers: { 'x-role': getRole() },
         });
+        if (!res.ok) {
+            let msg = `HTTP ${res.status}`;
+            try { msg = (await res.json()).message || msg; } catch (_) {}
+            throw new Error(Array.isArray(msg) ? msg.join(', ') : msg);
+        }
+        const disposition = res.headers.get('Content-Disposition') || '';
+        const match = disposition.match(/filename="?([^"]+)"?/);
+        const filename = match ? match[1] : `event-${eventId}-attendees.csv`;
 
-        const csv = rows.map(row => row.map(csvEscape).join(',')).join('\n');
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${(event?.title || 'tournament').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-registrations.csv`;
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
-        toast(`📄 Exported ${regs.length} registration${regs.length === 1 ? '' : 's'}`);
+        toast('📄 Attendee list exported');
     } catch (err) {
         toast('⚠️ ' + err.message);
     }
 };
-
-function csvEscape(value) {
-    const str = String(value ?? '');
-    return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
-}
 
 // ── Utilities ──────────────────────────────────────────────────────────────
 function esc(str) {

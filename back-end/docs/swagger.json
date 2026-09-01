@@ -832,6 +832,54 @@
         ]
       }
     },
+    "/api/events/{id}/export-attendees": {
+      "get": {
+        "operationId": "EventsController_exportAttendees",
+        "summary": "Export an event's attendee list as CSV",
+        "description": "Downloads registration ID, username, email, and registration time for every registrant. Requires community_manager, organizer, or admin.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "RBAC role header. Accepted values: admin | community_manager | organizer | moderator | user. GET / POST require any valid role. PATCH requires community_manager, organizer, or admin. DELETE requires admin.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "admin",
+                "community_manager",
+                "organizer",
+                "moderator",
+                "user"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Numeric event ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV file (text/csv)"
+          },
+          "403": {
+            "description": "Only community_manager, organizer, or admin can export attendees"
+          },
+          "404": {
+            "description": "Event not found"
+          }
+        },
+        "tags": [
+          "events"
+        ]
+      }
+    },
     "/api/reports": {
       "get": {
         "operationId": "ReportsController_findAll",

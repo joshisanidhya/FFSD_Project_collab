@@ -8,7 +8,9 @@ import {
   Patch,
   Post,
   Query,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import {
   ApiBody,
   ApiCreatedResponse,
@@ -72,6 +74,23 @@ export class EventsController {
   @ApiForbiddenResponse({ description: 'Missing or invalid x-role header' })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.eventsService.findOne(id);
+  }
+
+  @Get(':id/export-attendees')
+  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.ORGANIZER)
+  @ApiOperation({
+    summary: 'Export an event\'s attendee list as CSV',
+    description: 'Downloads registration ID, username, email, and registration time for every registrant. Requires community_manager, organizer, or admin.',
+  })
+  @ApiParam({ name: 'id', type: Number, description: 'Numeric event ID' })
+  @ApiOkResponse({ description: 'CSV file (text/csv)' })
+  @ApiNotFoundResponse({ description: 'Event not found' })
+  @ApiForbiddenResponse({ description: 'Only community_manager, organizer, or admin can export attendees' })
+  exportAttendees(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
+    const { filename, csv } = this.eventsService.exportAttendeesCsv(id);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csv);
   }
 
   @Post()
