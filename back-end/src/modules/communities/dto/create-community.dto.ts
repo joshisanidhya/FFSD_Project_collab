@@ -60,6 +60,12 @@ export class CreateCommunityDto {
   @IsIn(['public', 'private'])
   visibility?: 'public' | 'private';
 
+  @ApiPropertyOptional({ type: [String], example: ['Be respectful', 'Stay on topic'], description: 'Owner-editable community rules — the UI falls back to generic defaults when this is empty' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  rules?: string[];
+
   @ApiPropertyOptional({ example: '⚡', description: 'Emoji or image URL shown as the community icon' })
   @IsOptional()
   @IsString()

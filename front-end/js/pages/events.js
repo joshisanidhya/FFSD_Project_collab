@@ -304,6 +304,7 @@ window.handleRegistrationToggle = async function (eventId) {
     if (!event) return;
 
     if (isRegistered) {
+        if (!confirm(`Unregister from "${event.title}"? You'll lose your spot and may need to register again.`)) return;
         await unregisterFromEvent(event);
     } else {
         if (event.maxAttendees && event.attendees >= event.maxAttendees) {
@@ -384,6 +385,9 @@ window.submitEventRegistration = async function () {
     if (!fullName) showError('err-regFullName', 'Full name is required');
     if (!email || !/^\S+@\S+\.\S+$/.test(email)) showError('err-regEmail', 'A valid email is required');
     if (!phone || phone.replace(/\D/g, '').length < 7) showError('err-regPhone', 'A valid phone number is required');
+    if (!inGameId || !/^[a-zA-Z0-9_.\- ]{3,24}$/.test(inGameId)) {
+        showError('err-regInGameId', 'Required — 3-24 characters, letters/numbers/_-. only');
+    }
     if (!isValid) return;
 
     const registrations = JSON.parse(localStorage.getItem('nexus_registered_events') || '[]');

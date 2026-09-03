@@ -65,6 +65,14 @@ let activeChannelName = "general";
 let currentCommunityId = null;
 let currentChannelMessages = []; // last set loaded for the active channel, from the real API
 
+// Two different communities can each have a channel literally named
+// "general" — the backend's ChatMessageRecord.channelId has no separate
+// community field, so a bare name would make both communities share the
+// same messages. Every read/write goes through this compound key instead.
+function channelKey(name) {
+  return currentCommunityId ? `${currentCommunityId}::${name}` : name;
+}
+
 function getChatUser() {
   return typeof getCurrentUser === "function" ? getCurrentUser() : null;
 }
@@ -138,7 +146,7 @@ async function loadAndRenderMessages(channelId) {
   if (!wrap) return;
 
   try {
-    currentChannelMessages = await window.API.messages.getByChannel(channelId);
+    currentChannelMessages = await window.API.messages.getByChannel(channelKey(channelId));
   } catch (err) {
     console.warn("[Chat] Could not load messages for", channelId, err.message);
     currentChannelMessages = [];
@@ -158,6 +166,73 @@ async function loadAndRenderMessages(channelId) {
 
   renderPinnedPanel();
   scrollToBottom();
+}
+
+// The channel-sidebar footer ("who am I") was static markup hardcoded to a
+// sample name — it never reflected whoever was actually logged in.
+function renderCurrentUserFooter() {
+  const user = getChatUser();
+  const nameEl = document.querySelector(".ch-footer .user-av-name");
+  const avEl = document.querySelector(".ch-footer .user-av");
+  const displayName = typeof getUserFullName === "function"
+    ? getUserFullName(user)
+    : (user?.fullName || user?.name || user?.username || "Guest");
+  if (nameEl) nameEl.textContent = displayName;
+  if (avEl) {
+    const initials = typeof getUserInitials === "function" ? getUserInitials(user) : (displayName || "U").slice(0, 2).toUpperCase();
+    avEl.textContent = initials;
+  }
+}
+
+// The right-hand member sidebar was 100% static sample markup (same three
+// fake names for every community, regardless of who actually joined) — this
+// replaces it with the community's real membership, same join pattern
+// community-page.js already uses for its own member tab.
+async function renderChatMembers(communityId) {
+  const list = document.querySelector(".mem-sidebar .mem-list");
+  if (!list || !communityId) return;
+
+  list.innerHTML = `<div class="mem-group-title">Loading…</div>`;
+
+  let members = [];
+  try {
+    const [memberships, users] = await Promise.all([
+      window.API.memberships.getAll({ communityId }),
+      window.API.users.getAll(),
+    ]);
+    const usersById = new Map(users.map((u) => [String(u.id), u]));
+    const community = await window.API.communities.getOne(communityId).catch(() => null);
+    members = memberships.map((m) => {
+      const user = usersById.get(String(m.userId));
+      const isOwner = user && community && String(user.id) === String(community.ownerId);
+      const isMod = !isOwner && (user?.role === "moderator" || user?.role === "community_manager");
+      return {
+        name: user ? (user.username || user.email) : `User #${m.userId}`,
+        roleLabel: isOwner ? "Owner" : (isMod ? "Moderator" : "Member"),
+        roleClass: isOwner ? "owner-c" : (isMod ? "moderator-c" : ""),
+      };
+    });
+  } catch (err) {
+    console.warn("[Chat] Could not load real members:", err.message);
+  }
+
+  const onlineCountEls = [document.getElementById("onlineCount"), document.querySelector(".online-count")];
+  onlineCountEls.forEach((el) => { if (el) el.textContent = members.length; });
+
+  if (!members.length) {
+    list.innerHTML = `<div class="empty-state" style="padding:16px;color:var(--text-3,#888);font-size:12.5px;">No members yet.</div>`;
+    return;
+  }
+
+  list.innerHTML = `<div class="mem-group-title">Members — ${members.length}</div>` + members.map((m) => `
+    <div class="mem-row">
+      <div class="m-av grad-purple user-avatar"><span class="m-stat" style="background:var(--success)"></span></div>
+      <div class="m-info">
+        <div class="m-name">${escapeAttr(m.name)}</div>
+        <div class="m-role-tag ${m.roleClass}">${m.roleLabel}</div>
+      </div>
+    </div>
+  `).join("");
 }
 
 function renderPinnedPanel() {
@@ -1070,7 +1145,7 @@ window.sendMessage = async function () {
   const user = getChatUser();
   try {
     await window.API.messages.create({
-      channelId: activeChannelName,
+      channelId: channelKey(activeChannelName),
       communityId: currentCommunityId || undefined,
       authorId: user?.id,
       authorName: user?.username || user?.name || "User",
@@ -1102,6 +1177,8 @@ window.sendMessage = async function () {
 document.addEventListener("DOMContentLoaded", async () => {
   if (typeof enforcePageAccess === "function" && !enforcePageAccess()) return;
 
+  renderCurrentUserFooter();
+
   // Fetch community details to render channels
   const urlParams = new URLSearchParams(window.location.search);
   const commId = urlParams.get("community") || sessionStorage.getItem("currentCommunityId") || urlParams.get("id");
@@ -1112,6 +1189,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
       community = await window.API.communities.getOne(commId);
       currentCommunityId = community?.id ?? null;
+      renderChatMembers(currentCommunityId);
     } catch (err) {
       console.error("Failed to load community details for chat", err);
     }

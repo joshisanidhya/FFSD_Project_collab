@@ -198,6 +198,8 @@ function renderChannels() {
 function renderCommunity() {
   document.getElementById("communityName").value = currentCommunity.name;
   document.getElementById("communityDesc").value = currentCommunity.description;
+  const rulesEl = document.getElementById("communityRules");
+  if (rulesEl) rulesEl.value = (currentCommunity.rules || []).join("\n");
   renderHeader();
   renderBanner();
   renderMembers();
@@ -205,20 +207,39 @@ function renderCommunity() {
   setDirty(false);
 }
 
-function loadCommunity() {
+// Was localStorage-first (only ever reading a stale/fake seeded cache), so a
+// real community created via the backend never actually showed its real
+// data here — settings looked "limited", and Insights had no real ownerId
+// to look up a plan with. The backend record is now the source of truth;
+// localStorage is only a fallback when it's unreachable.
+async function loadCommunity() {
   const id = getCommunityId();
   communities = loadCommunitiesFromStorage();
-  currentCommunity = communities.find((community) => normalizeId(community.id) === normalizeId(id));
 
-  if (!currentCommunity) {
-    currentCommunity = normalizeCommunity({
-      ...defaultCommunities[0],
-      id,
-      name: "New Community",
-      description: "Describe what this community is about.",
-    });
-    communities.push(currentCommunity);
-    persistCommunities();
+  let backendCommunity = null;
+  if (window.API && window.API.communities) {
+    try {
+      backendCommunity = await window.API.communities.getOne(id);
+    } catch (err) {
+      console.warn("[CommunitySettings] Could not load community from backend, using local cache:", err.message);
+    }
+  }
+
+  if (backendCommunity) {
+    currentCommunity = normalizeCommunity(backendCommunity);
+  } else {
+    currentCommunity = communities.find((community) => normalizeId(community.id) === normalizeId(id));
+
+    if (!currentCommunity) {
+      currentCommunity = normalizeCommunity({
+        ...defaultCommunities[0],
+        id,
+        name: "New Community",
+        description: "Describe what this community is about.",
+      });
+      communities.push(currentCommunity);
+      persistCommunities();
+    }
   }
 
   savedSnapshot = JSON.parse(JSON.stringify(currentCommunity));
@@ -250,21 +271,38 @@ function saveCommunitySettings() {
   currentCommunity.name = name;
   currentCommunity.description = description;
 
+  const rulesEl = document.getElementById("communityRules");
+  currentCommunity.rules = rulesEl
+    ? rulesEl.value.split("\n").map((line) => line.trim()).filter(Boolean)
+    : currentCommunity.rules;
+
   communities = communities.map((community) =>
     normalizeId(community.id) === normalizeId(currentCommunity.id) ? currentCommunity : community
   );
 
   persistCommunities();
-  
-  // Sync to Backend if API is available
+
+  // Sync to backend — awaited (not fire-and-forget) so a real rejection
+  // (e.g. the channel-count plan limit) surfaces as an error instead of the
+  // UI claiming success while the backend silently kept the old data.
   if (window.API && window.API.communities && window.API.communities.update) {
     window.API.communities.update(currentCommunity.id, {
         name: currentCommunity.name,
         description: currentCommunity.description,
         channels: currentCommunity.channels,
+        rules: currentCommunity.rules,
         banner: currentCommunity.banner,
         bannerImage: currentCommunity.bannerImage
-    }).catch(err => console.warn('Failed to sync settings to API:', err));
+    }).then(() => {
+        savedSnapshot = JSON.parse(JSON.stringify(currentCommunity));
+        renderHeader();
+        setDirty(false);
+        toast("Community updated successfully");
+    }).catch(err => {
+        console.warn('Failed to sync settings to API:', err);
+        toast("⚠️ Could not save: " + err.message);
+    });
+    return;
   }
 
   savedSnapshot = JSON.parse(JSON.stringify(currentCommunity));
@@ -463,9 +501,9 @@ window.uploadBanner = uploadBanner;
 window.handleBannerUpload = uploadBanner;
 window.loadCommunity = loadCommunity;
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   if (typeof renderUserUI === "function") renderUserUI();
-  loadCommunity();
+  await loadCommunity(); // must finish before the ownership check below reads currentCommunity
 
   const user = typeof getCurrentUser === 'function' ? getCurrentUser() : {};
   const ownedIds = JSON.parse(localStorage.getItem('nexus_owned_community_ids') || '[]');

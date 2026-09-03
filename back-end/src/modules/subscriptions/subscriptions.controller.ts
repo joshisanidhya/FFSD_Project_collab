@@ -21,6 +21,13 @@ const SUBSCRIBER_ROLES = [
 export class SubscriptionsController {
   constructor(private readonly subscriptionsService: SubscriptionsService) {}
 
+  @Get()
+  @Roles(AppRole.ADMIN, AppRole.OWNER)
+  @ApiOperation({ summary: 'Breakdown of active subscriptions by plan, plus the list of current premium subscribers', description: 'Admin/Owner only — powers the Owner dashboard\'s Subscriptions drill-down.' })
+  findAll() {
+    return this.subscriptionsService.findAll();
+  }
+
   @Get('status')
   @Roles(...SUBSCRIBER_ROLES)
   @ApiOperation({ summary: 'Get a user\'s current subscription plan', description: 'Defaults to the free plan if the user has never subscribed.' })

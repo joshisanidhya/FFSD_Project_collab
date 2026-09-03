@@ -47,7 +47,7 @@
       <div id="searchToggleBtn" class="hact-btn" onclick="toggleSearchBar()" title="Search Messages">🔍</div>
       <div id="pinnedToggleBtn" class="hact-btn" onclick="togglePinnedPanel()" title="Pinned Messages">📌</div>
       <div id="memberCountChip" class="member-count-chip" onclick="toggleMemberSidebar()" title="Members List">
-        👥 <span id="onlineCount">3</span>
+        👥 <span id="onlineCount">—</span>
       </div>
       <div class="header-divider" style="width:1px; height:24px; background:var(--border); margin:0 8px;"></div>
       <div class="icon-btn" onclick="window.location.href='profile-settings.html'">
@@ -77,7 +77,7 @@
 
       <div class="ch-footer">
         <div class="user-av grad-purple user-avatar"></div>
-        <div class="user-av-name">Rahul Kumar</div>
+        <div class="user-av-name">You</div>
         <div class="mic-btn" id="muteMicBtn" title="Mute Mic" onclick="toggleMute(this)">🎤</div>
         <div class="mic-btn" id="deafenBtn" title="Deafen" onclick="toggleDeafen(this)">🎧</div>
       </div>
@@ -110,29 +110,6 @@
         <div class="chat-empty-state" id="chatEmptyState" style="display: none;">
           <div class="empty-icon">👋</div>
           <div class="empty-text">Start the conversation</div>
-        </div>
-        <div class="day-divider"><span>May 1, 2026</span></div>
-        <div class="msg-group">
-          <div class="msg-av grad-purple user-avatar"></div>
-          <div class="msg-body">
-            <div class="msg-header">
-              <span class="msg-uname">Rahul Kumar</span>
-              <span class="msg-role role-owner-badge">Owner</span>
-              <span class="msg-time">10:00 AM</span>
-            </div>
-            <div class="msg-text">Welcome to the Pro Gamers community! 👋</div>
-            <div class="reactions">
-              <div class="reaction-pill mine" onclick="toggleReaction(this)">
-                <span>🔥</span><span class="reaction-count">3</span>
-              </div>
-            </div>
-            <!-- Message Actions -->
-            <div class="msg-actions">
-              <div class="act-btn" title="Add Reaction" onclick="openEmojiPicker(this, event)">😊</div>
-              <div class="act-btn" title="Reply" onclick="replyToMessage(this)">↩️</div>
-              <div class="act-btn" title="More" onclick="showMessageMenu(this, event)">⋯</div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -184,7 +161,7 @@
         <div class="mem-title">
           <span class="mem-title-text">Members</span>
           <div class="mem-toggle-area">
-            <span class="online-count">3</span>
+            <span class="online-count">—</span>
             <button class="mem-toggle-btn" onclick="toggleMemberSidebar()" title="Toggle Sidebar">
               <span class="toggle-icon">❯</span>
             </button>
@@ -192,28 +169,8 @@
         </div>
       </div>
       <div class="mem-list">
-        <div class="mem-group-title">Online — 3</div>
-        <div class="mem-row">
-          <div class="m-av grad-purple user-avatar"><span class="m-stat" style="background:var(--success)"></span></div>
-          <div class="m-info">
-            <div class="m-name">Rahul Kumar</div>
-            <div class="m-role-tag owner-c">Owner</div>
-          </div>
-        </div>
-        <div class="mem-row">
-          <div class="m-av grad-orange">AK <span class="m-stat" style="background:var(--success)"></span></div>
-          <div class="m-info">
-            <div class="m-name">Arjun Kumar</div>
-            <div class="m-role-tag moderator-c">Moderator</div>
-          </div>
-        </div>
-        <div class="mem-row">
-          <div class="m-av grad-cyan">JD <span class="m-stat" style="background:var(--success)"></span></div>
-          <div class="m-info">
-            <div class="m-name">Jane Doe</div>
-            <div class="m-role-tag">Member</div>
-          </div>
-        </div>
+        <!-- Populated dynamically from the community's real membership by chat.js's renderChatMembers() -->
+        <div class="mem-group-title">Loading…</div>
       </div>
     </aside>
   </div>

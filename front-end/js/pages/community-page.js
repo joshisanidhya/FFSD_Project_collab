@@ -83,8 +83,37 @@ function renderCommunityData() {
     renderChannelsFromTags(channelSource);
     renderCommunityEvents();
     renderCommunityMembers();
+    renderRules();
     initJoinState(_comm.id);
     initCommunityNavigation(_comm.id);
+}
+
+// Generic defaults shown until the owner sets real rules via
+// community-settings.html — was previously hardcoded straight into this
+// page's HTML (identical for every community, and not editable anywhere).
+const DEFAULT_RULES = [
+    'Treat every member with kindness and respect. Personal attacks, harassment, hate speech, and discriminatory language of any kind are strictly prohibited.',
+    "Keep discussions relevant to each channel's purpose. Use an off-topic channel for casual conversations.",
+    'Unsolicited advertisements, excessive self-promotion, and repetitive posting are not allowed.',
+    'When answering questions, be thorough and patient. Encourage learning at every level.',
+    'Always credit the original author when sharing code, articles, or other content.',
+    'Sharing pirated software, cracked licenses, or any illegal content is grounds for immediate permanent ban.',
+    'Moderator decisions are final. If you disagree with an action, use the appeal process rather than arguing in public channels.',
+];
+
+function renderRules() {
+    const container = document.getElementById('rulesMain');
+    if (!container) return;
+
+    const rules = (_comm.rules && _comm.rules.length) ? _comm.rules : DEFAULT_RULES;
+    container.innerHTML = rules.map((text, i) => `
+        <div class="rule-card">
+            <div class="rule-num">${i + 1}</div>
+            <div class="rule-body">
+                <div class="rule-desc">${escapeHTML(text)}</div>
+            </div>
+        </div>
+    `).join('');
 }
 
 // ── Members ───────────────────────────────────────────────────────────────────

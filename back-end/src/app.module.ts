@@ -38,7 +38,12 @@ import { PlatformConfigController } from './modules/platform-config/platform-con
 import { UploadController } from './modules/upload/upload.controller';
 import { ReportsController } from './modules/reports/reports.controller';
 import { AppealsController } from './modules/appeals/appeals.controller';
-
+// NOTE: back-end/src/users/ (UserModule) is intentionally NOT registered here.
+// It declares its own @Controller('users') @Get() that returns raw HTML,
+// which collides with the real UsersModule already imported below (same
+// /api/users route, JSON). Wiring both in breaks /api/users — the endpoint
+// nearly every page depends on — for whichever controller loses the race.
+// If this module gets finished, give it its own route path first.
 @Module({
   imports: [
     ServeStaticModule.forRoot({
