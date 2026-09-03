@@ -545,6 +545,216 @@
         ]
       }
     },
+    "/api/subscriptions": {
+      "get": {
+        "operationId": "SubscriptionsController_findAll",
+        "summary": "Breakdown of active subscriptions by plan, plus the list of current premium subscribers",
+        "description": "Admin/Owner only — powers the Owner dashboard's Subscriptions drill-down.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "RBAC role header. Any non-owner role may manage its own subscription.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "subscriptions"
+        ]
+      }
+    },
+    "/api/subscriptions/status": {
+      "get": {
+        "operationId": "SubscriptionsController_status",
+        "summary": "Get a user's current subscription plan",
+        "description": "Defaults to the free plan if the user has never subscribed.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "RBAC role header. Any non-owner role may manage its own subscription.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": 4,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "subscriptions"
+        ]
+      }
+    },
+    "/api/subscriptions/upgrade": {
+      "post": {
+        "operationId": "SubscriptionsController_upgrade",
+        "summary": "Upgrade (or change) a subscription plan",
+        "description": "Free → Plus → Ultra Pro. Logs a simulated payment for paid plans.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "RBAC role header. Any non-owner role may manage its own subscription.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpgradeSubscriptionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The new active subscription record"
+          }
+        },
+        "tags": [
+          "subscriptions"
+        ]
+      }
+    },
+    "/api/subscriptions/cancel": {
+      "post": {
+        "operationId": "SubscriptionsController_cancel",
+        "summary": "Cancel a subscription",
+        "description": "Reverts the user to the free plan.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "RBAC role header. Any non-owner role may manage its own subscription.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelSubscriptionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "message": "Subscription for user 4 reverted to free plan"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "subscriptions"
+        ]
+      }
+    },
+    "/api/payments/history": {
+      "get": {
+        "operationId": "PaymentsController_history",
+        "summary": "Get a user's payment history",
+        "description": "Simulated ledger entries — no real payment gateway is involved.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "RBAC role header. /history is open to any authenticated role (scoped to their own userId). /summary requires owner or admin.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": false,
+            "in": "query",
+            "description": "Filter to one user; omitted returns everything (admin/owner use).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of payment records"
+          }
+        },
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/api/payments/summary": {
+      "get": {
+        "operationId": "PaymentsController_summary",
+        "summary": "Get aggregate revenue summary",
+        "description": "Totals by type/month — feeds the Owner revenue dashboard.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "RBAC role header. /history is open to any authenticated role (scoped to their own userId). /summary requires owner or admin.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Revenue summary totals"
+          }
+        },
+        "tags": [
+          "payments"
+        ]
+      }
+    },
     "/api/events": {
       "get": {
         "operationId": "EventsController_findAll",
@@ -1362,67 +1572,6 @@
         ]
       }
     },
-    "/api/payments/history": {
-      "get": {
-        "operationId": "PaymentsController_history",
-        "summary": "Get a user's payment history",
-        "description": "Simulated ledger entries — no real payment gateway is involved.",
-        "parameters": [
-          {
-            "name": "x-role",
-            "in": "header",
-            "description": "RBAC role header. /history is open to any authenticated role (scoped to their own userId). /summary requires owner or admin.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "userId",
-            "required": false,
-            "in": "query",
-            "description": "Filter to one user; omitted returns everything (admin/owner use).",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Array of payment records"
-          }
-        },
-        "tags": [
-          "payments"
-        ]
-      }
-    },
-    "/api/payments/summary": {
-      "get": {
-        "operationId": "PaymentsController_summary",
-        "summary": "Get aggregate revenue summary",
-        "description": "Totals by type/month — feeds the Owner revenue dashboard.",
-        "parameters": [
-          {
-            "name": "x-role",
-            "in": "header",
-            "description": "RBAC role header. /history is open to any authenticated role (scoped to their own userId). /summary requires owner or admin.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Revenue summary totals"
-          }
-        },
-        "tags": [
-          "payments"
-        ]
-      }
-    },
     "/api/memberships": {
       "get": {
         "operationId": "MembershipsController_findAll",
@@ -2102,134 +2251,11 @@
         ]
       }
     },
-    "/api/subscriptions/status": {
-      "get": {
-        "operationId": "SubscriptionsController_status",
-        "summary": "Get a user's current subscription plan",
-        "description": "Defaults to the free plan if the user has never subscribed.",
-        "parameters": [
-          {
-            "name": "x-role",
-            "in": "header",
-            "description": "RBAC role header. Any non-owner role may manage its own subscription.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "userId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "example": 4,
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SubscriptionDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "subscriptions"
-        ]
-      }
-    },
-    "/api/subscriptions/upgrade": {
-      "post": {
-        "operationId": "SubscriptionsController_upgrade",
-        "summary": "Upgrade (or change) a subscription plan",
-        "description": "Free → Plus → Ultra Pro. Logs a simulated payment for paid plans.",
-        "parameters": [
-          {
-            "name": "x-role",
-            "in": "header",
-            "description": "RBAC role header. Any non-owner role may manage its own subscription.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpgradeSubscriptionDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "The new active subscription record"
-          }
-        },
-        "tags": [
-          "subscriptions"
-        ]
-      }
-    },
-    "/api/subscriptions/cancel": {
-      "post": {
-        "operationId": "SubscriptionsController_cancel",
-        "summary": "Cancel a subscription",
-        "description": "Reverts the user to the free plan.",
-        "parameters": [
-          {
-            "name": "x-role",
-            "in": "header",
-            "description": "RBAC role header. Any non-owner role may manage its own subscription.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CancelSubscriptionDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "example": {
-                    "message": "Subscription for user 4 reverted to free plan"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "subscriptions"
-        ]
-      }
-    },
     "/api/organisers": {
       "get": {
         "operationId": "OrganisersController_findAll",
         "summary": "List all organiser applications",
-        "description": "Admin-only — powers the approval queue.",
+        "description": "Admin (approval queue) / Owner (read-only stats drill-down).",
         "parameters": [
           {
             "name": "x-role",
@@ -3111,6 +3137,17 @@
             ],
             "example": "public"
           },
+          "rules": {
+            "example": [
+              "Be respectful",
+              "Stay on topic"
+            ],
+            "description": "Owner-editable community rules — the UI falls back to generic defaults when this is empty",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "icon": {
             "type": "string",
             "example": "⚡",
@@ -3197,6 +3234,17 @@
             ],
             "example": "public"
           },
+          "rules": {
+            "example": [
+              "Be respectful",
+              "Stay on topic"
+            ],
+            "description": "Owner-editable community rules — the UI falls back to generic defaults when this is empty",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "icon": {
             "type": "string",
             "example": "⚡",
@@ -3219,6 +3267,70 @@
             "example": 1
           }
         }
+      },
+      "SubscriptionDto": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "string",
+            "example": "plus",
+            "enum": [
+              "free",
+              "plus",
+              "ultra_pro"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "example": "active",
+            "enum": [
+              "active",
+              "cancelled"
+            ]
+          },
+          "startedAt": {
+            "type": "string",
+            "example": "2026-05-01T09:00:00.000Z"
+          }
+        },
+        "required": [
+          "plan",
+          "status"
+        ]
+      },
+      "UpgradeSubscriptionDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "number",
+            "example": 4
+          },
+          "plan": {
+            "type": "string",
+            "example": "plus",
+            "enum": [
+              "free",
+              "plus",
+              "ultra_pro"
+            ]
+          }
+        },
+        "required": [
+          "userId",
+          "plan"
+        ]
+      },
+      "CancelSubscriptionDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "number",
+            "example": 4
+          }
+        },
+        "required": [
+          "userId"
+        ]
       },
       "EventDto": {
         "type": "object",
@@ -4025,70 +4137,6 @@
         },
         "required": [
           "read"
-        ]
-      },
-      "SubscriptionDto": {
-        "type": "object",
-        "properties": {
-          "plan": {
-            "type": "string",
-            "example": "plus",
-            "enum": [
-              "free",
-              "plus",
-              "ultra_pro"
-            ]
-          },
-          "status": {
-            "type": "string",
-            "example": "active",
-            "enum": [
-              "active",
-              "cancelled"
-            ]
-          },
-          "startedAt": {
-            "type": "string",
-            "example": "2026-05-01T09:00:00.000Z"
-          }
-        },
-        "required": [
-          "plan",
-          "status"
-        ]
-      },
-      "UpgradeSubscriptionDto": {
-        "type": "object",
-        "properties": {
-          "userId": {
-            "type": "number",
-            "example": 4
-          },
-          "plan": {
-            "type": "string",
-            "example": "plus",
-            "enum": [
-              "free",
-              "plus",
-              "ultra_pro"
-            ]
-          }
-        },
-        "required": [
-          "userId",
-          "plan"
-        ]
-      },
-      "CancelSubscriptionDto": {
-        "type": "object",
-        "properties": {
-          "userId": {
-            "type": "number",
-            "example": 4
-          }
-        },
-        "required": [
-          "userId"
         ]
       },
       "ApplyOrganiserDto": {

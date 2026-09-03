@@ -157,10 +157,19 @@ function nextLocalId(records) {
     return records.reduce((max, item) => Math.max(max, Number(item.id) || 0), 0) + 1;
 }
 
+const BACKEND_UNREACHABLE_MSG = 'Backend unreachable. Please start the NestJS server.';
+
 async function withLocalFallback(path, options, fallback) {
     try {
         return await apiFetch(path, options);
     } catch (err) {
+        // Only fall back to localStorage when the backend is genuinely
+        // unreachable (network failure) — apiFetch normalizes that one case
+        // to this exact message. Any other error is a real HTTP response
+        // from a live backend (a 403 plan-limit rejection, a 400 validation
+        // error, ...) and MUST propagate, or business rules like "free plan
+        // capped at 4 communities" would silently no-op instead of blocking.
+        if (err.message !== BACKEND_UNREACHABLE_MSG) throw err;
         console.warn(`[API] Falling back to localStorage for ${path}: ${err.message}`);
         return fallback();
     }
@@ -235,6 +244,11 @@ const API = {
             try {
                 created = await apiFetch('/communities', { method: 'POST', body: JSON.stringify(body) });
             } catch (err) {
+                // Same rule as withLocalFallback: only synthesize a local
+                // community when the backend is unreachable, never when it
+                // rejected the request (e.g. the free-plan 4-community cap) —
+                // otherwise the plan limit silently does nothing.
+                if (err.message !== BACKEND_UNREACHABLE_MSG) throw err;
                 console.warn('[API] /communities POST fallback', err);
                 const records = localRead('communities');
                 created = { id: nextLocalId(records), ...body };
@@ -495,6 +509,7 @@ const API = {
         status:  (userId)         => API.get(`/subscriptions/status?userId=${encodeURIComponent(userId)}`),
         upgrade: (userId, plan)   => API.post('/subscriptions/upgrade', { userId, plan }),
         cancel:  (userId)         => API.post('/subscriptions/cancel', { userId }),
+        findAll: ()                => API.get('/subscriptions'),
     },
     organisers: {
         getAll:       (status) => API.get(`/organisers${status ? `?status=${encodeURIComponent(status)}` : ''}`),

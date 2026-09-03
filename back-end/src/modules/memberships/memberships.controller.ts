@@ -34,7 +34,7 @@ export class MembershipsController {
   constructor(private readonly membershipsService: MembershipsService) {}
 
   @Get()
-  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER, AppRole.ORGANIZER)
+  @Roles(AppRole.ADMIN, AppRole.COMMUNITY_MANAGER, AppRole.MODERATOR, AppRole.USER, AppRole.ORGANIZER, AppRole.OWNER)
   @ApiOperation({ summary: 'List all memberships, optionally filtered by communityId or userId' })
   @ApiQuery({ name: 'communityId', required: false, type: Number })
   @ApiQuery({ name: 'userId', required: false, type: Number })

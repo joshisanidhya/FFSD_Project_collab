@@ -36,6 +36,7 @@ export interface CommunityRecord {
   banner?: string;
   bannerImage?: string;
   visibility?: 'public' | 'private';
+  rules?: string[]; // owner-editable via community-settings.html; falls back to generic defaults in the UI when empty
 }
 
 export interface MembershipRecord {

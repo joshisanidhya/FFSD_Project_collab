@@ -21,8 +21,8 @@ export class OrganisersController {
   constructor(private readonly organisersService: OrganisersService) {}
 
   @Get()
-  @Roles(AppRole.ADMIN)
-  @ApiOperation({ summary: 'List all organiser applications', description: 'Admin-only — powers the approval queue.' })
+  @Roles(AppRole.ADMIN, AppRole.OWNER)
+  @ApiOperation({ summary: 'List all organiser applications', description: 'Admin (approval queue) / Owner (read-only stats drill-down).' })
   @ApiQuery({ name: 'status', required: false, enum: ['pending', 'verified', 'rejected'] })
   findAll(@Query('status') status?: OrganiserStatus) {
     return this.organisersService.findAll(status);

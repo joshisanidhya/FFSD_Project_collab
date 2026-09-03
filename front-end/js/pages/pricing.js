@@ -105,6 +105,16 @@ function render() {
 window.changePlan = async function (planId) {
     const userId = currentUserId();
     if (!userId) { toast('⚠️ No signed-in user id — please log back in'); return; }
+
+    const isDowngrade = PLAN_RANK[planId] < PLAN_RANK[currentPlan];
+    if (isDowngrade) {
+        const planName = PLANS.find(p => p.id === planId)?.name || planId;
+        const confirmed = confirm(
+            `Downgrade to ${planName}? You'll immediately lose access to your current plan's paid features (extra communities/channels/moderators already created stay, but you won't be able to add more beyond the ${planName} limits).`,
+        );
+        if (!confirmed) return;
+    }
+
     try {
         await window.API.subscriptions.upgrade(userId, planId);
         currentPlan = planId;

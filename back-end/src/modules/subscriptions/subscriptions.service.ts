@@ -54,4 +54,29 @@ export class SubscriptionsService {
     }
     return { message: `Subscription for user ${userId} reverted to free plan` };
   }
+
+  /**
+   * Powers the Owner dashboard's Subscriptions drill-down. "Premium Users" on
+   * that dashboard counts CURRENTLY-active non-free subscriptions (a live
+   * snapshot); "Subscription Revenue" is the cumulative sum of every upgrade
+   * payment ever logged (never reversed by a later downgrade/cancel) — the
+   * two numbers measure different things and won't move together, which is
+   * exactly why this breakdown exists: to make that visible instead of just
+   * showing a bare count next to a bare total.
+   */
+  findAll(): { byPlan: Record<string, number>; subscribers: Array<{ userId: number; username: string; plan: SubscriptionPlan; startedAt: string }> } {
+    const active = db.subscriptions.filter((sub) => sub.status === 'active');
+    const byPlan: Record<string, number> = { free: 0, plus: 0, ultra_pro: 0 };
+    active.forEach((sub) => { byPlan[sub.plan] = (byPlan[sub.plan] || 0) + 1; });
+
+    const subscribers = active
+      .filter((sub) => sub.plan !== 'free')
+      .map((sub) => {
+        const user = db.users.find((item) => item.id === sub.userId);
+        return { userId: sub.userId, username: user?.username || `user#${sub.userId}`, plan: sub.plan, startedAt: sub.startedAt };
+      })
+      .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
+
+    return { byPlan, subscribers };
+  }
 }

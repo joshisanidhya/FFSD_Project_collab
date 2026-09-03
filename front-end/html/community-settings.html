@@ -40,6 +40,7 @@
           <button class="settings-nav-item tab active" data-settings-tab="basic" data-target="settings-basic">Basic Info</button>
           <button class="settings-nav-item tab" data-settings-tab="members" data-target="settings-members">Members</button>
           <button class="settings-nav-item tab" data-settings-tab="channels" data-target="settings-channels">Channels</button>
+          <button class="settings-nav-item tab" data-settings-tab="rules" data-target="settings-rules">📜 Rules</button>
           <button class="settings-nav-item tab" data-settings-tab="insights" data-target="settings-insights">💎 Insights</button>
         </nav>
       </aside>
@@ -91,6 +92,16 @@
                 <button class="btn btn-primary" onclick="showModal('modalBg')">Create Channel</button>
               </div>
               <div class="channel-list" id="settingsChannelList"></div>
+            </div>
+          </section>
+
+          <section class="settings-tab section" id="settings-rules">
+            <div class="settings-card">
+              <div class="settings-card-title">Community Rules</div>
+              <div class="settings-field">
+                <label>One rule per line — shown to members on the Rules tab of the community page. Leave empty to show generic default rules.</label>
+                <textarea id="communityRules" class="settings-textarea" rows="10" placeholder="Be respectful to other members&#10;Stay on topic in each channel&#10;No spam or self-promotion"></textarea>
+              </div>
             </div>
           </section>
 
